@@ -1,0 +1,22 @@
+{
+  "name": "alexey-ershkov-db",
+  "version": "1.0.0",
+  "description": "TechParkBD",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alexey-ershkov/alexey-ershkov-DB.git"
+  },
+  "keywords": [
+    "node.js"
+  ],
+  "author": "alexey.ershkov@gmail.com",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/alexey-ershkov/alexey-ershkov-DB/issues"
+  },
+  "homepage": "https://github.com/alexey-ershkov/alexey-ershkov-DB#readme"
+}
