@@ -1,5 +1,5 @@
-let client = require('./connectDB');
-let queries = require('./DbQueries');
+const client = require('../connectDB');
+let queries = require('../DbQueries');
 
 
 module.exports = (HttpRequest, HttpResponse) => {
