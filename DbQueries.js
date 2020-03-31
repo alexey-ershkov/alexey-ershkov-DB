@@ -54,3 +54,9 @@ module.exports.getThreadBySlug = {
   text: 'SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug  FROM thread t JOIN forum f on t.forum = f.slug\n' +
         'WHERE t.slug = $1'
 };
+
+module.exports.getThreadBySlugOrId = {
+    rowMode: 'array',
+    text: 'SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug  FROM thread t JOIN forum f on t.forum = f.slug\n' +
+        'WHERE t.slug = $1 OR t.id::citext = $1'
+};

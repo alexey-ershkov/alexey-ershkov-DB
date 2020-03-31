@@ -12,6 +12,7 @@ const getForum = require('./getForum');
 
 //Thread Handlers
 const createThread = require('./createThread');
+const getThreadInfo = require('./getThreadInfo');
 
 mainRouter.use((request, response, next) => {
     response.set('Content-Type', 'application/json');
@@ -30,6 +31,7 @@ mainRouter.get('/forum/:slug/details/', getForum);
 
 //Thread URL selection
 mainRouter.post('/forum/:forum/create', createThread);
+mainRouter.get('/thread/:slug/details', getThreadInfo);
 
 
 module.exports = mainRouter;
