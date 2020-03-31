@@ -60,3 +60,20 @@ module.exports.getThreadBySlugOrId = {
     text: 'SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug  FROM thread t JOIN forum f on t.forum = f.slug\n' +
         'WHERE t.slug = $1 OR t.id::citext = $1'
 };
+
+module.exports.getThreadsInForumBySlagDESC = {
+    rowMode: 'array',
+    text: 'SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug FROM thread t\n' +
+        'JOIN forum f on t.forum = f.slug\n' +
+        'WHERE f.slug = $1 AND t.created <=  $2::timestamp AT TIME ZONE \'0\'\n' +
+        'ORDER BY t.created DESC'
+};
+
+
+module.exports.getThreadsInForumBySlagASC = {
+    rowMode: 'array',
+    text: 'SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug FROM thread t\n' +
+        'JOIN forum f on t.forum = f.slug\n' +
+        'WHERE f.slug = $1 AND t.created >=  $2::timestamp AT TIME ZONE \'0\'\n' +
+        'ORDER BY t.created'
+};
