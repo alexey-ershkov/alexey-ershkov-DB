@@ -37,3 +37,20 @@ module.exports.getForumBySlugSimple = {
         'JOIN usr u on f.usr = u.nickname\n'+
         'WHERE f.slug = $1'
 };
+
+module.exports.createThread = {
+    rowMode: 'array',
+    text: 'INSERT INTO thread (usr, created, forum, message, title, slug) VALUES ($1, $2, $3, $4, $5, $6)'
+};
+
+module.exports.getThread = {
+    rowMode: 'array',
+    text: 'SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug  FROM thread t JOIN forum f on t.forum = f.slug\n' +
+        'WHERE t.usr = $1 AND t.forum = $2 AND t.message = $3 AND t.title = $4'
+};
+
+module.exports.getThreadBySlug = {
+  rowMode: 'array',
+  text: 'SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug  FROM thread t JOIN forum f on t.forum = f.slug\n' +
+        'WHERE t.slug = $1'
+};

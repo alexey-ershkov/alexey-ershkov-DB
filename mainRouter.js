@@ -10,9 +10,12 @@ const getUser = require('./UserHandlers/getUser');
 const createForum = require('./createForum');
 const getForum = require('./getForum');
 
+//Thread Handlers
+const createThread = require('./createThread');
+
 mainRouter.use((request, response, next) => {
     response.set('Content-Type', 'application/json');
-    console.log(`[DEBUG] Request URL is http://localhost:3000${request.path}`);
+    console.log(`[DEBUG] ${request.method}: Request URL is http://localhost:3000${request.path}`);
     next();
 });
 
@@ -24,6 +27,9 @@ mainRouter.post('/user/:nickname/create',createUser);
 //Forum URL section
 mainRouter.post('/forum/create', createForum);
 mainRouter.get('/forum/:slug/details/', getForum);
+
+//Thread URL selection
+mainRouter.post('/forum/:forum/create', createThread);
 
 
 module.exports = mainRouter;
