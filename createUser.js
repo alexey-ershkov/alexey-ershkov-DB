@@ -1,20 +1,10 @@
 const client = require('./connectDB');
-
-let inserUser = {
-    text: 'INSERT INTO usr (email, fullname, nickname, about) VALUES ($1, $2, $3, $4)',
-    rowMode: 'array',
-};
-
-let getUser = {
-    text: 'SELECT * FROM usr WHERE nickname = $1 OR email = $2',
-    rowMode: 'array',
-};
-
+const queries = require('./DbQueries');
 
 
 module.exports = (HttpRequest, HttpResponse) => {
 
-    inserUser.values = [
+    queries.insertUser.values = [
         HttpRequest.body.email,
         HttpRequest.body.fullname,
         HttpRequest.params.nickname,
@@ -22,18 +12,18 @@ module.exports = (HttpRequest, HttpResponse) => {
     ];
 
 
-    client.query(inserUser)
+    client.query(queries.insertUser)
         .then(()=>{
             sendOkResponse(HttpRequest, HttpResponse);
         })
         .catch( () => {
 
-            getUser.values = [
+            queries.getUser.values = [
                 HttpRequest.params.nickname,
                 HttpRequest.body.email,
-            ]
+            ];
 
-            client.query(getUser)
+            client.query(queries.getUser)
                 .then(response => {
                     sendRepeatedStatus(HttpResponse, response.rows);
                 })
