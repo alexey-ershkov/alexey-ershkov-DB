@@ -14,6 +14,7 @@ const getForum = require('./getForum');
 const createThread = require('./createThread');
 const getThreadInfo = require('./getThreadInfo');
 const getForumThreads = require('./getForumThreads');
+const createVote = require('./createVote');
 
 mainRouter.use((request, response, next) => {
     response.set('Content-Type', 'application/json');
@@ -34,6 +35,7 @@ mainRouter.get('/forum/:slug/details/', getForum);
 mainRouter.post('/forum/:forum/create', createThread);
 mainRouter.get('/thread/:slug/details', getThreadInfo);
 mainRouter.get('/forum/:forum/threads', getForumThreads);
+mainRouter.post('/thread/:slug/vote', createVote);
 
 
 module.exports = mainRouter;

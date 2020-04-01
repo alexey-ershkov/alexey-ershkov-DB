@@ -77,3 +77,23 @@ module.exports.getThreadsInForumBySlagASC = {
         'WHERE f.slug = $1 AND t.created >=  $2::timestamp AT TIME ZONE \'0\'\n' +
         'ORDER BY t.created'
 };
+
+module.exports.getThreadBySlugOrIdWithVotes = {
+    rowMode: 'array',
+    text: 'SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, SUM(v.vote)::integer FROM thread t\n' +
+        'JOIN forum f on t.forum = f.slug\n' +
+        'LEFT JOIN vote v on t.id = v.thread\n' +
+        'WHERE t.slug = $1 OR t.id::citext = $1\n' +
+        'GROUP BY f.slug, t.id'
+};
+
+module.exports.createVote = {
+    rowMode: 'array',
+    text: 'INSERT INTO vote (vote, usr, thread) VALUES ($1::integer , $2, $3)'
+};
+
+module.exports.updateVote = {
+    rowMode: 'array',
+    text: 'UPDATE vote SET vote = $1 WHERE usr = $2 AND thread = $3\n' +
+        'RETURNING thread'
+};
