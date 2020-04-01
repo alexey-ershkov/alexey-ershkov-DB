@@ -12,8 +12,8 @@ app.use('/', mainRouter);
 
 app.listen(port, (err) => {
     if (err) {
-        return console.log('something bad happened', err)
+        return console.log(`[ERROR] Can't start server on PORT:${port}`, err)
     }
-    console.log(`server is listening on ${port}`)
+    console.log(`[INFO] server is listening on http://localhost:${port}`)
 });
 

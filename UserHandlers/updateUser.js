@@ -42,7 +42,6 @@ let updateUser = (HttpRequest, HttpResponse) => {
                 sendOkResponse(HttpRequest, HttpResponse);
             })
             .catch(error => {
-                console.log(error);
                 sendCannotUpdate(HttpRequest, HttpResponse);
             })
     } else {

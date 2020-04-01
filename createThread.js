@@ -66,7 +66,6 @@ let createThread = (HttpRequest, HttpResponse) => {
                                 sendThreadInfo(HttpResponse,resp.rows[0]);
                             })
                             .catch( e => {
-                                console.log('3');
                                 console.log(e);
                                 sendError(HttpResponse);
                             })
@@ -86,7 +85,6 @@ let createThread = (HttpRequest, HttpResponse) => {
             }
         })
         .catch(e => {
-            console.log('1');
             console.log(e);
             sendError(HttpResponse);
         })

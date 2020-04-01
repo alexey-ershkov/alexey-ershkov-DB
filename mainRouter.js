@@ -7,14 +7,15 @@ const updateUser = require('./UserHandlers/updateUser');
 const getUser = require('./UserHandlers/getUser');
 
 //Forum Handlers
-const createForum = require('./createForum');
-const getForum = require('./getForum');
+const createForum = require('./ForumHandlers/createForum');
+const getForum = require('./ForumHandlers/getForum');
+const getForumThreads = require('./ForumHandlers/getForumThreads');
 
 //Thread Handlers
 const createThread = require('./createThread');
 const getThreadInfo = require('./getThreadInfo');
-const getForumThreads = require('./getForumThreads');
 const createVote = require('./createVote');
+const updateThread = require('./updateThread');
 
 mainRouter.use((request, response, next) => {
     response.set('Content-Type', 'application/json');
@@ -30,11 +31,12 @@ mainRouter.post('/user/:nickname/create',createUser);
 //Forum URL section
 mainRouter.post('/forum/create', createForum);
 mainRouter.get('/forum/:slug/details/', getForum);
+mainRouter.get('/forum/:forum/threads', getForumThreads);
 
 //Thread URL selection
 mainRouter.post('/forum/:forum/create', createThread);
 mainRouter.get('/thread/:slug/details', getThreadInfo);
-mainRouter.get('/forum/:forum/threads', getForumThreads);
+mainRouter.post('/thread/:slug/details', updateThread);
 mainRouter.post('/thread/:slug/vote', createVote);
 
 

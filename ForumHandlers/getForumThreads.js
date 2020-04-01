@@ -1,5 +1,5 @@
-const client = require('./connectDB');
-const queries = require('./DbQueries');
+const client = require('../connectDB');
+const queries = require('../DbQueries');
 
 module.exports = (HttpRequest, HttpResponse) => {
 
@@ -61,9 +61,6 @@ let getThreads = (HttpRequest, HttpResponse) => {
     if (HttpRequest.query.limit) {
         customQuery.text += ` LIMIT ${HttpRequest.query.limit}`;
     }
-
-    console.log(customQuery);
-
 
     client.query(customQuery)
         .then(response => {
