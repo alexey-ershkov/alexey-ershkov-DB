@@ -25,8 +25,8 @@ module.exports.createForum = {
 module.exports.getForumBySlug = {
     rowMode: 'array',
     text: 'SELECT count(p), f.slug, count(t), f.title, f.usr FROM forum f\n' +
-        'LEFT JOIN post p on f.slug = p.forum\n' +
         'LEFT JOIN thread t on f.slug = t.forum\n' +
+        'LEFT JOIN post p on t.id = p.thread\n' +
         'WHERE f.slug = $1' +
         'GROUP BY f.slug'
 };
