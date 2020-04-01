@@ -17,6 +17,9 @@ const getThreadInfo = require('./getThreadInfo');
 const createVote = require('./createVote');
 const updateThread = require('./updateThread');
 
+//Post Handlers
+const createPost = require('./createPost');
+
 mainRouter.use((request, response, next) => {
     response.set('Content-Type', 'application/json');
     console.log(`[DEBUG] ${request.method}: Request URL is http://localhost:3000${request.path}`);
@@ -39,5 +42,7 @@ mainRouter.get('/thread/:slug/details', getThreadInfo);
 mainRouter.post('/thread/:slug/details', updateThread);
 mainRouter.post('/thread/:slug/vote', createVote);
 
+//Post URL section
+mainRouter.post('/thread/:slug_or_id/create', createPost);
 
 module.exports = mainRouter;

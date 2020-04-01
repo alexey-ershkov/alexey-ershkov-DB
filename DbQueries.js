@@ -97,3 +97,28 @@ module.exports.updateVote = {
     text: 'UPDATE vote SET vote = $1 WHERE usr = $2 AND thread = $3\n' +
         'RETURNING thread'
 };
+
+module.exports.createPosts = {
+    rowMode: 'array',
+    text: 'INSERT INTO post (usr, message,  parent, thread, created) VALUES'
+};
+
+module.exports.getPostsByIds = {
+    rowMode: 'array',
+    text: 'SELECT u.nickname, p.created, f.slug, p.id, p.message, p.parent, t.id FROM post p\n' +
+        'JOIN thread t on p.thread = t.id\n' +
+        'JOIN forum f on t.forum = f.slug\n' +
+        'JOIN usr u on p.usr = u.nickname\n' +
+        'WHERE p.id IN '
+};
+
+module.exports.getParentThread = {
+    rowMode: 'array',
+    text: 'SELECT thread FROM post\n' +
+        'WHERE id IN '
+};
+
+module.exports.getUsers = {
+    rowMode: 'array',
+    text: 'SELECT * FROM usr WHERE nickname IN'
+};
