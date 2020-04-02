@@ -68,7 +68,7 @@ let createPosts = async (HttpRequest, HttpResponse, threadInfo) => {
                         let resp = await client.query(queries.createSinglePost);
                         ids.push(resp.rows[0]);
                     }
-                    sendPostInfo(HttpResponse,ids);
+                    sendPostInfo(HttpRequest, HttpResponse,ids);
                 });
         }
     } else {
@@ -78,7 +78,7 @@ let createPosts = async (HttpRequest, HttpResponse, threadInfo) => {
 
 
 
-let sendPostInfo = (HttpResponse, PostIds) => {
+let sendPostInfo = async (HttpRequest, HttpResponse, PostIds) => {
       let getPostsQuery = Object.assign({}, queries.getPostsByIds);
       getPostsQuery.text += ' (';
       getPostsQuery.values = [];
@@ -88,30 +88,48 @@ let sendPostInfo = (HttpResponse, PostIds) => {
           if (PostIds.length - 1 !== index){
               getPostsQuery.text += ','
           } else {
-              getPostsQuery.text += ')'
+              getPostsQuery.text += `) AND p.message = $${index+2}`
           }
       });
+    let response = [];
+        for (const elem of HttpRequest.body) {
+            getPostsQuery.values.push(elem.message);
+            let resp = await client.query(getPostsQuery);
+            let data = resp.rows[0];
+            response.push({
+                 author: data[0],
+                 created: data[1],
+                 forum: data[2],
+                 id: data[3],
+                 message: data[4],
+                 parent: data[5],
+                thread: data[6],
+            })
+            getPostsQuery.values.pop();
+        }
 
-      client.query(getPostsQuery)
-          .then(DB => {
-              let response = [];
-              DB.rows.forEach(data => {
-                  response.push({
-                      author: data[0],
-                      created: data[1],
-                      forum: data[2],
-                      id: data[3],
-                      message: data[4],
-                      parent: data[5],
-                      thread: data[6],
-                  })
-              });
-              HttpResponse.status(201).json(response);
-          })
-          .catch(e => {
-              console.log(e);
-              sendError(HttpResponse);
-          })
+    HttpResponse.status(201).json(response);
+
+      // client.query(getPostsQuery)
+      //     .then(DB => {
+      //
+      //         DB.rows.forEach(data => {
+      //             response.push({
+      //                 author: data[0],
+      //                 created: data[1],
+      //                 forum: data[2],
+      //                 id: data[3],
+      //                 message: data[4],
+      //                 parent: data[5],
+      //                 thread: data[6],
+      //             })
+      //         });
+      //         HttpResponse.status(201).json(response);
+      //     })
+      //     .catch(e => {
+      //         console.log(e);
+      //         sendError(HttpResponse);
+      //     })
 };
 
 let sendThreadNotFound = (HttpRequest, HttpResponse) => {

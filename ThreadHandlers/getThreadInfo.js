@@ -2,11 +2,11 @@ const client = require('../connectDB');
 const queries = require('../DbQueries');
 
 module.exports = (HttpRequest, HttpResponse) => {
-    queries.getThreadBySlugOrId.values = [
+    queries.getThreadBySlugOrIdWithVotes.values = [
        HttpRequest.params.slug,
     ];
 
-    client.query(queries.getThreadBySlugOrId)
+    client.query(queries.getThreadBySlugOrIdWithVotes)
         .then( response => {
             if (response.rows.length !== 0) {
                 sendThreadInfo(HttpResponse, response.rows[0]);
@@ -30,6 +30,7 @@ let sendThreadInfo = (HttpResponse, data) => {
         message: data[2],
         slug: data[4],
         title: data[1],
+        votes: data[7]
     })
 };
 
