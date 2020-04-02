@@ -2,11 +2,11 @@ const client = require('../connectDB');
 const queries = require('../DbQueries');
 
 module.exports = (HttpRequest, HttpResponse) => {
-    queries.getForumBySlugSimple.values = [
+    queries.getForumBySlug.values = [
         HttpRequest.params.slug
     ];
 
-    client.query(queries.getForumBySlugSimple)
+    client.query(queries.getForumBySlug)
         .then(response => {
             if (response.rows.length !== 0) {
                 sendInfo(HttpResponse, response.rows[0]);
@@ -23,9 +23,11 @@ module.exports = (HttpRequest, HttpResponse) => {
 let sendInfo = (HttpResponse, data) => {
     HttpResponse.status(200);
     HttpResponse.json({
-        slug: data[0],
-        title: data[1],
-        user: data[2],
+        posts: Number(data[0]),
+        slug: data[1],
+        threads: Number(data[2]),
+        title: data[3],
+        user: data[4],
     });
 };
 

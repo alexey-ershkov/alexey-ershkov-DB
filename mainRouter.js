@@ -55,6 +55,6 @@ mainRouter.post('/thread/:slug_or_id/create', createPost);
 mainRouter.get('/service/status', getInfo);
 
 //Clear URL section
-mainRouter.post('/service/clear', clearDB);
+// mainRouter.post('/service/clear', clearDB);
 
 module.exports = mainRouter;

@@ -52,18 +52,24 @@ let createPosts = async (HttpRequest, HttpResponse, threadInfo) => {
 
 
         }
-        console.log('after check');
+
         if (!isSend) {
-            console.log('Not is send');
-            let createQuery = doInputQuery(HttpRequest, threadInfo[0]);
-            client.query(createQuery)
-                .then(response => {
-                    sendPostInfo(HttpResponse, response.rows);
-                })
-                .catch(e => {
-                    console.log(e);
-                    sendError(HttpResponse);
-                })
+            let ids = [];
+            client.query('BEGIN')
+                .then(async () => {
+                    for (const elem of HttpRequest.body) {
+                        queries.createSinglePost.values = [
+                            elem.author,
+                            elem.message,
+                            elem.parent,
+                            threadInfo[0],
+                        ];
+                        let resp = await client.query(queries.createSinglePost);
+                        ids.push(resp.rows[0]);
+                    }
+                    await client.query('COMMIT');
+                    sendPostInfo(HttpResponse,ids);
+                });
         }
     } else {
         HttpResponse.status(201).json([]);
