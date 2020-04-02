@@ -101,35 +101,15 @@ let sendPostInfo = async (HttpRequest, HttpResponse, PostIds) => {
                  created: data[1],
                  forum: data[2],
                  id: data[3],
-                 message: data[4],
-                 parent: data[5],
-                thread: data[6],
-            })
+                 isEdited: Boolean(data[4]),
+                 message: data[5],
+                 parent: data[6],
+                thread: data[7],
+            });
             getPostsQuery.values.pop();
         }
 
     HttpResponse.status(201).json(response);
-
-      // client.query(getPostsQuery)
-      //     .then(DB => {
-      //
-      //         DB.rows.forEach(data => {
-      //             response.push({
-      //                 author: data[0],
-      //                 created: data[1],
-      //                 forum: data[2],
-      //                 id: data[3],
-      //                 message: data[4],
-      //                 parent: data[5],
-      //                 thread: data[6],
-      //             })
-      //         });
-      //         HttpResponse.status(201).json(response);
-      //     })
-      //     .catch(e => {
-      //         console.log(e);
-      //         sendError(HttpResponse);
-      //     })
 };
 
 let sendThreadNotFound = (HttpRequest, HttpResponse) => {
@@ -137,32 +117,6 @@ let sendThreadNotFound = (HttpRequest, HttpResponse) => {
     HttpResponse.json({
         message: `Can't find thread with slug or id ${HttpRequest.params.slug_or_id}`
     })
-};
-
-let doInputQuery = (HttpRequest, threadId) => {
-    let createQuery = Object.assign({}, queries.createPosts);
-    let globalQueryCount = 0;
-    createQuery.values = [];
-    HttpRequest.body.forEach((elem, ind) => {
-        createQuery.text += '(';
-        Object.keys(elem).forEach((key, index) => {
-            globalQueryCount++;
-            if (Object.keys(elem).length - 1 !== index) {
-                createQuery.text += `$${globalQueryCount}, `;
-            } else {
-                createQuery.text += `$${globalQueryCount++}, $${globalQueryCount}, current_timestamp)`
-            }
-            createQuery.values.push(elem[key]);
-        });
-        createQuery.values.push(threadId);
-        if (HttpRequest.body.length - 1 !== ind) {
-            createQuery.text += ', ';
-        } else {
-            createQuery.text += 'RETURNING id';
-        }
-    });
-
-    return createQuery;
 };
 
 let sendUserNotFound = (HttpResponse, nickanme) => {

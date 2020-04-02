@@ -111,7 +111,7 @@ module.exports.createPosts = {
 
 module.exports.getPostsByIds = {
     rowMode: 'array',
-    text: 'SELECT u.nickname, p.created, f.slug, p.id, p.message, p.parent, t.id FROM post p\n' +
+    text: 'SELECT u.nickname, p.created, f.slug, p.id, p.isEdited, p.message, p.parent, t.id FROM post p\n' +
         'JOIN thread t on p.thread = t.id\n' +
         'JOIN forum f on t.forum = f.slug\n' +
         'JOIN usr u on p.usr = u.nickname\n' +
