@@ -9,7 +9,6 @@ module.exports = (HttpRequest, HttpResponse) => {
 
     client.query(queries.getForumBySlug)
         .then(resp => {
-            console.log(resp);
             if (resp.rows.length === 0) {
                 sendForumNotFound(HttpRequest, HttpResponse);
             } else {

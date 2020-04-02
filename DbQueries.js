@@ -115,10 +115,20 @@ module.exports.getPostsByIds = {
 module.exports.getParentThread = {
     rowMode: 'array',
     text: 'SELECT thread FROM post\n' +
-        'WHERE id IN '
+        'WHERE id = $1 '
 };
 
-module.exports.getUsers = {
-    rowMode: 'array',
-    text: 'SELECT * FROM usr WHERE nickname IN'
+module.exports.getInfo = {
+    rowMode:'array',
+    text: 'SELECT count(*) FROM forum\n' +
+        'UNION ALL\n' +
+        'SELECT count(*) FROM post\n' +
+        'UNION ALL\n' +
+        'SELECT count(*) FROM thread\n' +
+        'UNION ALL\n' +
+        'SELECT count(*) FROM usr'
+};
+
+module.exports.clearDB = {
+  text: 'DELETE FROM usr'
 };

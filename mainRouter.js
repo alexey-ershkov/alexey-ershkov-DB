@@ -12,13 +12,19 @@ const getForum = require('./ForumHandlers/getForum');
 const getForumThreads = require('./ForumHandlers/getForumThreads');
 
 //Thread Handlers
-const createThread = require('./createThread');
-const getThreadInfo = require('./getThreadInfo');
-const createVote = require('./createVote');
-const updateThread = require('./updateThread');
+const createThread = require('./ThreadHandlers/createThread');
+const getThreadInfo = require('./ThreadHandlers/getThreadInfo');
+const createVote = require('./ThreadHandlers/createVote');
+const updateThread = require('./ThreadHandlers/updateThread');
 
 //Post Handlers
 const createPost = require('./createPost');
+
+//Info Handlers
+const getInfo = require('./ServiceHandlers/getInfo');
+
+//Clear Handlers
+const clearDB = require('./ServiceHandlers/clearDB');
 
 mainRouter.use((request, response, next) => {
     response.set('Content-Type', 'application/json');
@@ -44,5 +50,11 @@ mainRouter.post('/thread/:slug/vote', createVote);
 
 //Post URL section
 mainRouter.post('/thread/:slug_or_id/create', createPost);
+
+//Info URL section
+mainRouter.get('/service/status', getInfo);
+
+//Clear URL section
+mainRouter.post('/service/clear', clearDB);
 
 module.exports = mainRouter;
