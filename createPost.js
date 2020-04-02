@@ -55,19 +55,19 @@ let createPosts = async (HttpRequest, HttpResponse, threadInfo) => {
 
         if (!isSend) {
             let ids = [];
-            client.query('BEGIN')
-                .then(async () => {
+            client.query(queries.getTimestamp)
+                .then(async response => {
                     for (const elem of HttpRequest.body) {
                         queries.createSinglePost.values = [
                             elem.author,
                             elem.message,
                             elem.parent,
                             threadInfo[0],
+                            response.rows[0].current_timestamp,
                         ];
                         let resp = await client.query(queries.createSinglePost);
                         ids.push(resp.rows[0]);
                     }
-                    await client.query('COMMIT');
                     sendPostInfo(HttpResponse,ids);
                 });
         }

@@ -101,7 +101,7 @@ module.exports.updateVote = {
 
 module.exports.createSinglePost = {
     rowMode: 'array',
-    text: 'INSERT INTO post (usr, message,  parent, thread, created) VALUES ($1, $2, $3, $4, current_timestamp) RETURNING id'
+    text: 'INSERT INTO post (usr, message,  parent, thread, created) VALUES ($1, $2, $3, $4, $5) RETURNING id'
 };
 
 module.exports.createPosts = {
@@ -137,4 +137,8 @@ module.exports.getInfo = {
 
 module.exports.clearDB = {
   text: 'DELETE FROM usr'
+};
+
+module.exports.getTimestamp = {
+    text: 'SELECT current_timestamp'
 };
