@@ -19,6 +19,7 @@ const updateThread = require('./ThreadHandlers/updateThread');
 
 //Post Handlers
 const createPost = require('./createPost');
+const updatePost = require('./updatePost');
 
 //Info Handlers
 const getInfo = require('./ServiceHandlers/getInfo');
@@ -50,6 +51,7 @@ mainRouter.post('/thread/:slug/vote', createVote);
 
 //Post URL section
 mainRouter.post('/thread/:slug_or_id/create', createPost);
+mainRouter.post('/post/:id/details', updatePost);
 
 //Info URL section
 mainRouter.get('/service/status', getInfo);

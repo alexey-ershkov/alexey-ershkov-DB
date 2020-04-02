@@ -142,3 +142,17 @@ module.exports.clearDB = {
 module.exports.getTimestamp = {
     text: 'SELECT current_timestamp'
 };
+
+module.exports.getPostById = {
+    rowMode: 'array',
+    text: 'SELECT u.nickname, p.created, f.slug, p.id, p.isEdited, p.message, p.parent, t.id FROM post p\n' +
+        'JOIN thread t on p.thread = t.id\n' +
+        'JOIN forum f on t.forum = f.slug\n' +
+        'JOIN usr u on p.usr = u.nickname\n' +
+        'WHERE p.id = $1 '
+};
+
+module.exports.updatePost = {
+    rowMode: 'array',
+    text: 'UPDATE post SET message = $1, isEdited=true WHERE id = $2'
+};
