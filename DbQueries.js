@@ -156,3 +156,48 @@ module.exports.updatePost = {
     rowMode: 'array',
     text: 'UPDATE post SET message = $1, isEdited=true WHERE id = $2'
 };
+
+module.exports.getForumUsersBySlug = {
+    rowMode: 'array',
+    text: 'SELECT u.nickname AS usr FROM forum f\n' +
+        'JOIN thread t on f.slug = t.forum\n' +
+        'JOIN usr u on t.usr = u.nickname\n' +
+        'WHERE f.slug = $1 \n' +
+        'UNION\n' +
+        'SELECT u2.nickname AS usr FROM forum f2\n' +
+        'JOIN thread t2 on f2.slug = t2.forum\n' +
+        'JOIN post p on t2.id = p.thread\n' +
+        'JOIN usr u2 on p.usr = u2.nickname\n' +
+        'WHERE f2.slug = $1 \n' +
+        'ORDER BY usr'
+};
+
+module.exports.getForumUsersBySlugSinceASC = {
+    rowMode: 'array',
+    text: 'SELECT u.nickname AS usr FROM forum f\n' +
+        'JOIN thread t on f.slug = t.forum\n' +
+        'JOIN usr u on t.usr = u.nickname\n' +
+        'WHERE f.slug = $1 AND u.nickname > $2\n' +
+        'UNION\n' +
+        'SELECT u2.nickname AS usr FROM forum f2\n' +
+        'JOIN thread t2 on f2.slug = t2.forum\n' +
+        'JOIN post p on t2.id = p.thread\n' +
+        'JOIN usr u2 on p.usr = u2.nickname\n' +
+        'WHERE f2.slug = $1 AND u2.nickname > $2\n' +
+        'ORDER BY usr'
+};
+
+module.exports.getForumUsersBySlugSinceDESC = {
+    rowMode: 'array',
+    text: 'SELECT u.nickname AS usr FROM forum f\n' +
+        'JOIN thread t on f.slug = t.forum\n' +
+        'JOIN usr u on t.usr = u.nickname\n' +
+        'WHERE f.slug = $1 AND u.nickname < $2\n' +
+        'UNION\n' +
+        'SELECT u2.nickname AS usr FROM forum f2\n' +
+        'JOIN thread t2 on f2.slug = t2.forum\n' +
+        'JOIN post p on t2.id = p.thread\n' +
+        'JOIN usr u2 on p.usr = u2.nickname\n' +
+        'WHERE f2.slug = $1 AND u2.nickname < $2\n' +
+        'ORDER BY usr'
+};

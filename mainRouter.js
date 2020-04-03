@@ -10,6 +10,7 @@ const getUser = require('./UserHandlers/getUser');
 const createForum = require('./ForumHandlers/createForum');
 const getForum = require('./ForumHandlers/getForum');
 const getForumThreads = require('./ForumHandlers/getForumThreads');
+const getForumUsers = require('./getForumUsers');
 
 //Thread Handlers
 const createThread = require('./ThreadHandlers/createThread');
@@ -43,6 +44,7 @@ mainRouter.post('/user/:nickname/create',createUser);
 mainRouter.post('/forum/create', createForum);
 mainRouter.get('/forum/:slug/details/', getForum);
 mainRouter.get('/forum/:forum/threads', getForumThreads);
+mainRouter.get('/forum/:slug/users', getForumUsers);
 
 //Thread URL selection
 mainRouter.post('/forum/:forum/create', createThread);
