@@ -10,19 +10,19 @@ const getUser = require('./UserHandlers/getUser');
 const createForum = require('./ForumHandlers/createForum');
 const getForum = require('./ForumHandlers/getForum');
 const getForumThreads = require('./ForumHandlers/getForumThreads');
-const getForumUsers = require('./getForumUsers');
+const getForumUsers = require('./ForumHandlers/getForumUsers');
 
 //Thread Handlers
 const createThread = require('./ThreadHandlers/createThread');
 const getThreadInfo = require('./ThreadHandlers/getThreadInfo');
 const createVote = require('./ThreadHandlers/createVote');
 const updateThread = require('./ThreadHandlers/updateThread');
-const getThreadPosts = require('./getThreadPosts');
+const getThreadPosts = require('./ThreadHandlers/getThreadPosts');
 
 //Post Handlers
-const createPost = require('./createPost');
-const updatePost = require('./updatePost');
-const getPost = require('./getPost');
+const createPost = require('./PostHandlers/createPost');
+const updatePost = require('./PostHandlers/updatePost');
+const getPost = require('./PostHandlers/getPost');
 
 //Info Handlers
 const getInfo = require('./ServiceHandlers/getInfo');

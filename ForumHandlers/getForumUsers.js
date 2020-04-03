@@ -1,5 +1,5 @@
-const client = require('./connectDB');
-const queries = require('./DbQueries');
+const client = require('../connectDB');
+const queries = require('../DbQueries');
 
 module.exports = async (HttpRequest, HttpResponse) => {
     queries.getForumBySlug.values = [
