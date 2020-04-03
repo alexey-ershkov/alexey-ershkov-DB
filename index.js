@@ -8,7 +8,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(bodyParser.raw());
 
-app.use('/', mainRouter);
+app.use('/api/', mainRouter);
 
 app.listen(port, (err) => {
     if (err) {
