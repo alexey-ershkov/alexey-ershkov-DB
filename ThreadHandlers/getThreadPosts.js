@@ -101,7 +101,6 @@ module.exports = async (HttpRequest, HttpResponse) => {
         }
 
 
-        console.log(getQuery);
 
         let posts = await client.query(getQuery);
         let response = [];
