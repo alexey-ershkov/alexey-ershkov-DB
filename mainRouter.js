@@ -32,7 +32,7 @@ const clearDB = require('./ServiceHandlers/clearDB');
 
 mainRouter.use((request, response, next) => {
     response.set('Content-Type', 'application/json');
-    console.log(`[DEBUG] ${request.method}: Request URL is http://localhost:3000${request.path}`);
+    console.log(`[DEBUG] ${request.method}: Request URL is http://localhost:5000${request.path}`);
     next();
 });
 
