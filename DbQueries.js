@@ -201,3 +201,31 @@ module.exports.getForumUsersBySlugSinceDESC = {
         'WHERE f2.slug = $1 AND u2.nickname < $2\n' +
         'ORDER BY usr'
 };
+
+module.exports.getThreadPostsFlat = {
+    rowMode: 'array',
+    text: 'SELECT u.nickname, p.created, f.slug, p.id, p.isEdited, p.message, p.parent, t.id FROM post p\n' +
+        'JOIN thread t on p.thread = t.id\n' +
+        'JOIN forum f on t.forum = f.slug\n' +
+        'JOIN usr u on p.usr = u.nickname\n' +
+        'WHERE (t.id::citext = $1 OR t.slug = $1) '
+};
+
+module.exports.getThreadPostsTree = {
+    rowMode: 'array',
+    text: 'WITH RECURSIVE recursetree (nickname, created, slug, id, isEdited, message, parent, thread, path) AS (\n' +
+        '    SELECT  u.nickname, p.created, f.slug, p.id, p.isEdited, p.message, p.parent, t.id,array_append(\'{}\'::int[], p.id)  FROM post p\n' +
+        '    JOIN thread t on p.thread = t.id\n' +
+        '    JOIN forum f on t.forum = f.slug\n' +
+        '    JOIN usr u on p.usr = u.nickname\n' +
+        '    WHERE parent = 0 AND (t.id::citext = $1 OR t.slug = $1)\n' +
+        '  UNION ALL\n' +
+        '    SELECT u2.nickname, p2.created, f2.slug , p2.id, p2.isEdited, p2.message, p2.parent, t2.id, array_append(path, p2.id)\n' +
+        '    FROM post p2\n' +
+        '    JOIN recursetree rt ON rt.id = p2.parent\n' +
+        '    JOIN thread t2 on p2.thread = t2.id\n' +
+        '    JOIN forum f2 on t2.forum = f2.slug\n' +
+        '    JOIN usr u2 on p2.usr = u2.nickname\n' +
+        '  )\n' +
+        'SELECT  nickname, created, slug, id, isEdited, message, parent, thread, r.path[1], r.path FROM recursetree r '
+};

@@ -44,7 +44,6 @@ module.exports = async (HttpRequest, HttpResponse) => {
 
                 let forumResponse = await client.query(queries.getForumBySlug);
                 let forumData = forumResponse.rows[0];
-                console.log(forumData);
                 answer.forum = {
                     posts: Number(forumData[0]),
                     slug: forumData[1],

@@ -17,6 +17,7 @@ const createThread = require('./ThreadHandlers/createThread');
 const getThreadInfo = require('./ThreadHandlers/getThreadInfo');
 const createVote = require('./ThreadHandlers/createVote');
 const updateThread = require('./ThreadHandlers/updateThread');
+const getThreadPosts = require('./getThreadPosts');
 
 //Post Handlers
 const createPost = require('./createPost');
@@ -51,6 +52,7 @@ mainRouter.post('/forum/:forum/create', createThread);
 mainRouter.get('/thread/:slug/details', getThreadInfo);
 mainRouter.post('/thread/:slug/details', updateThread);
 mainRouter.post('/thread/:slug/vote', createVote);
+mainRouter.get('/thread/:slug_or_id/posts', getThreadPosts);
 
 //Post URL section
 mainRouter.post('/thread/:slug_or_id/create', createPost);
@@ -61,6 +63,6 @@ mainRouter.post('/post/:id/details', updatePost);
 mainRouter.get('/service/status', getInfo);
 
 //Clear URL section
-// mainRouter.post('/service/clear', clearDB);
+mainRouter.post('/service/clear', clearDB);
 
 module.exports = mainRouter;
