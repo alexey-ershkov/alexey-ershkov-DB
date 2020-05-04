@@ -1,9 +1,12 @@
 package main
 
 import (
-	"alexey-ershkov/alexey-ershkov-DB.git/internal/user/delivery"
-	"alexey-ershkov/alexey-ershkov-DB.git/internal/user/repository"
-	"alexey-ershkov/alexey-ershkov-DB.git/internal/user/usecase"
+	fHandler "alexey-ershkov/alexey-ershkov-DB.git/internal/forum/delivery"
+	fRepo "alexey-ershkov/alexey-ershkov-DB.git/internal/forum/repository"
+	fUUcase "alexey-ershkov/alexey-ershkov-DB.git/internal/forum/usecase"
+	uHanler "alexey-ershkov/alexey-ershkov-DB.git/internal/user/delivery"
+	uRepo "alexey-ershkov/alexey-ershkov-DB.git/internal/user/repository"
+	uUcase "alexey-ershkov/alexey-ershkov-DB.git/internal/user/usecase"
 	"github.com/jackc/pgx"
 	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
@@ -30,9 +33,14 @@ func main() {
 		logrus.Fatal(err)
 	}
 
-	rep := repository.NewUserRepo(dbConn)
-	uc := usecase.NewUserUsecase(rep)
-	delivery.NewUserHandler(uc, server)
+	uRep := uRepo.NewUserRepo(dbConn)
+	fRep := fRepo.NewForumRepository(dbConn)
+
+	uUC := uUcase.NewUserUsecase(uRep)
+	fUC := fUUcase.NewForumUsecase(fRep)
+
+	uHanler.NewUserHandler(uUC, server)
+	fHandler.NewForumHandler(server, fUC)
 
 	logrus.Fatal(server.Start(":5000"))
 }
