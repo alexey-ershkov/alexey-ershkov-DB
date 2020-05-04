@@ -13,18 +13,25 @@ type UserHandler struct {
 	ucase user.Usecase
 }
 
+func handleError(e error) {
+	if e != nil {
+		logrus.Error(e)
+	}
+}
+
 func NewUserHandler(uc user.Usecase, router *echo.Echo) *UserHandler {
 	uh := &UserHandler{
 		ucase: uc,
 	}
 
-	router.GET("/user/:nickname/profile", uh.GetUser())
-	router.POST("/user/:nickname/create", uh.AddUser())
+	router.GET("/user/:nickname/profile", uh.GetUserHandler())
+	router.POST("/user/:nickname/profile", uh.UpdateUserHandler())
+	router.POST("/user/:nickname/create", uh.AddUserHandler())
 
 	return uh
 }
 
-func (uh *UserHandler) AddUser() echo.HandlerFunc {
+func (uh *UserHandler) AddUserHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		logrus.Info(c.Request().URL)
 		resp := &models.User{}
@@ -48,7 +55,7 @@ func (uh *UserHandler) AddUser() echo.HandlerFunc {
 	}
 }
 
-func (uh *UserHandler) GetUser() echo.HandlerFunc {
+func (uh *UserHandler) GetUserHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		logrus.Info(c.Request().URL)
 		resp := &models.User{}
@@ -67,8 +74,32 @@ func (uh *UserHandler) GetUser() echo.HandlerFunc {
 	}
 }
 
-func handleError(e error) {
-	if e != nil {
-		logrus.Error(e)
+func (uh *UserHandler) UpdateUserHandler() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		u := &models.User{}
+		u.Nickname = c.Param("nickname")
+		if err := uh.ucase.GetUser(u); err != nil {
+			if err := c.JSON(http.StatusNotFound, tools.Message{
+				"user doesn't exist",
+			}); err != nil {
+				handleError(err)
+			}
+			return nil
+		}
+		if err := c.Bind(u); err != nil {
+			handleError(err)
+		}
+		if err := uh.ucase.UpdateUser(u); err != nil {
+			if err := c.JSON(http.StatusConflict, tools.Message{
+				Message: "conflict while updating",
+			}); err != nil {
+				handleError(err)
+			}
+			return nil
+		}
+		if err := c.JSON(http.StatusOK, u); err != nil {
+			handleError(err)
+		}
+		return nil
 	}
 }

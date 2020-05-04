@@ -25,7 +25,7 @@ func (rep *Repository) InsertInto(user *models.User) error {
 	return nil
 }
 
-func (rep *Repository) GetUserByNickname(user *models.User) error {
+func (rep *Repository) GetByNickname(user *models.User) error {
 	row := rep.db.QueryRow(
 		`SELECT u.email, u.fullname, u.nickname, u.about FROM usr u WHERE nickname = $1`,
 		user.Nickname,
@@ -36,7 +36,7 @@ func (rep *Repository) GetUserByNickname(user *models.User) error {
 	return nil
 }
 
-func (rep *Repository) GetUsersByNicknameOrEmail(user *models.User) ([]models.User, error) {
+func (rep *Repository) GetByNicknameOrEmail(user *models.User) ([]models.User, error) {
 	rows, err := rep.db.Query(
 		"SELECT u.email, u.fullname, u.nickname, u.about FROM usr u WHERE nickname = $1 OR email = $2",
 		user.Nickname,
@@ -54,6 +54,25 @@ func (rep *Repository) GetUsersByNicknameOrEmail(user *models.User) ([]models.Us
 	}
 	rows.Close()
 	return users, nil
+}
+
+func (rep *Repository) Update(user *models.User) error {
+	var info string
+	err := rep.db.QueryRow(
+		"UPDATE usr SET "+
+			"email = $1, "+
+			"nickname = $2, "+
+			"fullname = $3, "+
+			"about = $4 WHERE nickname = $2 RETURNING email",
+		user.Email,
+		user.Nickname,
+		user.Fullname,
+		user.About,
+	).Scan(&info)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func NewUserRepo(db *pgx.Conn) user.Repository {
