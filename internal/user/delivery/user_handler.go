@@ -27,12 +27,11 @@ func NewUserHandler(uc user.Usecase, router *echo.Echo) *UserHandler {
 
 func (uh *UserHandler) AddUserHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		logrus.Info(c.Request().URL)
+		logrus.Info(c.Request().Method, "   ", c.Request().URL)
 		resp := &models.User{}
 		resp.Nickname = c.Param("nickname")
 		err := c.Bind(resp)
 		tools.HandleError(err)
-
 		if users, err := uh.ucase.CreateUser(resp); err != nil {
 			if err == tools.UserExist {
 				err = c.JSON(http.StatusConflict, users)
@@ -51,7 +50,7 @@ func (uh *UserHandler) AddUserHandler() echo.HandlerFunc {
 
 func (uh *UserHandler) GetUserHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		logrus.Info(c.Request().URL)
+		logrus.Info(c.Request().Method, "   ", c.Request().URL)
 		resp := &models.User{}
 		resp.Nickname = c.Param("nickname")
 		if err := uh.ucase.GetUser(resp); err != nil {
@@ -70,6 +69,7 @@ func (uh *UserHandler) GetUserHandler() echo.HandlerFunc {
 
 func (uh *UserHandler) UpdateUserHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {
+		logrus.Info(c.Request().Method, "   ", c.Request().URL)
 		u := &models.User{}
 		u.Nickname = c.Param("nickname")
 		if err := uh.ucase.GetUser(u); err != nil {

@@ -3,6 +3,8 @@ package repository
 import (
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/models"
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/user"
+	"database/sql"
+	"fmt"
 	"github.com/jackc/pgx"
 )
 
@@ -12,14 +14,20 @@ type Repository struct {
 
 func (rep *Repository) InsertInto(user *models.User) error {
 	var info string
+	about := &sql.NullString{}
+	if user.About != "" {
+		about.String = user.About
+		about.Valid = true
+	}
 	err := rep.db.QueryRow(
 		"INSERT INTO usr (email, fullname, nickname, about) VALUES ($1, $2, $3, $4) RETURNING email",
 		user.Email,
 		user.Fullname,
 		user.Nickname,
-		user.About,
+		about,
 	).Scan(&info)
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
 	return nil
@@ -30,8 +38,16 @@ func (rep *Repository) GetByNickname(user *models.User) error {
 		`SELECT u.email, u.fullname, u.nickname, u.about FROM usr u WHERE nickname = $1`,
 		user.Nickname,
 	)
-	if err := row.Scan(&user.Email, &user.Fullname, &user.Nickname, &user.About); err != nil {
+	fullname := &sql.NullString{}
+	about := &sql.NullString{}
+	if err := row.Scan(&user.Email, fullname, &user.Nickname, about); err != nil {
 		return err
+	}
+	if about.Valid {
+		user.About = about.String
+	}
+	if fullname.Valid {
+		user.Fullname = fullname.String
 	}
 	return nil
 }
@@ -47,8 +63,16 @@ func (rep *Repository) GetByNicknameOrEmail(user *models.User) ([]models.User, e
 	}
 	users := make([]models.User, 0)
 	for rows.Next() {
-		if err := rows.Scan(&user.Email, &user.Fullname, &user.Nickname, &user.About); err != nil {
+		fullname := &sql.NullString{}
+		about := &sql.NullString{}
+		if err := rows.Scan(&user.Email, fullname, &user.Nickname, about); err != nil {
 			return nil, err
+		}
+		if about.Valid {
+			user.About = about.String
+		}
+		if fullname.Valid {
+			user.Fullname = fullname.String
 		}
 		users = append(users, *user)
 	}
@@ -58,17 +82,31 @@ func (rep *Repository) GetByNicknameOrEmail(user *models.User) ([]models.User, e
 
 func (rep *Repository) Update(user *models.User) error {
 	var info string
-	err := rep.db.QueryRow(
-		"UPDATE usr SET "+
-			"email = $1, "+
-			"nickname = $2, "+
-			"fullname = $3, "+
-			"about = $4 WHERE nickname = $2 RETURNING email",
-		user.Email,
-		user.Nickname,
-		user.Fullname,
-		user.About,
-	).Scan(&info)
+	sqlStr := "UPDATE usr SET " +
+		"email = $1, " +
+		"nickname = $2"
+	args := make([]string, 0)
+	args = append(args, user.Email, user.Nickname)
+	if user.Fullname != "" {
+		sqlStr += ", fullname = $%d "
+		args = append(args, user.Fullname)
+		sqlStr = fmt.Sprintf(sqlStr, len(args))
+	}
+	if user.About != "" {
+		sqlStr += ", about = $%d "
+		args = append(args, user.About)
+		sqlStr = fmt.Sprintf(sqlStr, len(args))
+	}
+	sqlStr += "WHERE nickname = $2 RETURNING email"
+	var err error
+	switch len(args) {
+	case 2:
+		err = rep.db.QueryRow(sqlStr, args[0], args[1]).Scan(&info)
+	case 3:
+		err = rep.db.QueryRow(sqlStr, args[0], args[1], args[2]).Scan(&info)
+	case 4:
+		err = rep.db.QueryRow(sqlStr, args[0], args[1], args[2], args[3]).Scan(&info)
+	}
 	if err != nil {
 		return err
 	}

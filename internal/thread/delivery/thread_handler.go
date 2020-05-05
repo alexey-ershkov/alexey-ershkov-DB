@@ -23,7 +23,7 @@ func NewThreadHandler(uc thread.Usecase, router *echo.Echo) {
 
 func (thH *ThreadHandler) CreateThread() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		logrus.Info(c.Request().URL)
+		logrus.Info(c.Request().Method, "   ", c.Request().URL)
 		th := &models.Thread{}
 		err := c.Bind(th)
 		tools.HandleError(err)

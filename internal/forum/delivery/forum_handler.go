@@ -22,7 +22,7 @@ func NewForumHandler(router *echo.Echo, uc forum.Usecase) {
 
 func (fh *ForumHandler) CreateForum() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		logrus.Info(c.Request().URL)
+		logrus.Info(c.Request().Method, "   ", c.Request().URL)
 		f := &models.Forum{}
 		err := c.Bind(f)
 		if err != nil {
@@ -51,7 +51,7 @@ func (fh *ForumHandler) CreateForum() echo.HandlerFunc {
 
 func (fh *ForumHandler) GetForumInfo() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		logrus.Info(c.Request().URL)
+		logrus.Info(c.Request().Method, "   ", c.Request().URL)
 		f := &models.Forum{}
 		f.Slug = c.Param("slug")
 		if err := fh.uc.GetForum(f); err != nil {
