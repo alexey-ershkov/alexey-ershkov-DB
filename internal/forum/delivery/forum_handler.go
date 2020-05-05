@@ -40,8 +40,9 @@ func (fh *ForumHandler) CreateForum() echo.HandlerFunc {
 			tools.HandleError(err)
 			return nil
 		}
-		f.Posts = 0
-		f.Threads = 0
+		if err := fh.uc.GetForum(f); err != nil {
+			tools.HandleError(err)
+		}
 		err = c.JSON(http.StatusCreated, f)
 		tools.HandleError(err)
 		return nil

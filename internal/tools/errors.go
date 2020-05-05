@@ -13,4 +13,8 @@ func HandleError(e error) {
 
 var (
 	UserExist = errors.New("user exist")
+	//ForumExist = errors.New("forum exist")
+	ThreadExist    = errors.New("thread already exist")
+	UserNotExist   = errors.New("user does't exist")
+	ThreadNotExist = errors.New("no such thread")
 )
