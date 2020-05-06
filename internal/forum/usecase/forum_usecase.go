@@ -30,3 +30,11 @@ func (uc *Usecase) GetForum(f *models.Forum) error {
 	}
 	return nil
 }
+
+func (uc *Usecase) GetForumThreads(f *models.Forum, desc, limit, since string) ([]models.Thread, error) {
+	ths, err := uc.repo.GetThreads(f, desc, limit, since)
+	if err != nil {
+		return nil, err
+	}
+	return ths, nil
+}

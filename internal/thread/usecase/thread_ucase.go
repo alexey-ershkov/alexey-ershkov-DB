@@ -4,7 +4,6 @@ import (
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/models"
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/thread"
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/tools"
-	"fmt"
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,10 +19,9 @@ func NewThreadUsecase(r thread.Repository) thread.Usecase {
 
 func (tUC *Usecase) CreateThread(th *models.Thread) error {
 	if err := tUC.repo.InsertInto(th); err != nil {
-		if err := tUC.repo.Get(th); err != nil {
+		if err := tUC.repo.GetBySlug(th); err != nil {
 			return tools.UserNotExist
 		}
-		fmt.Println(err)
 		return tools.ThreadExist
 	}
 	if err := tUC.repo.Get(th); err != nil {
