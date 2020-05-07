@@ -4,6 +4,7 @@ import (
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/models"
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/thread"
 	"database/sql"
+	"fmt"
 	"github.com/jackc/pgx"
 	"github.com/sirupsen/logrus"
 	"time"
@@ -165,6 +166,95 @@ func (rep *Repository) GetVotes(th *models.Thread, v *models.Vote) error {
 	}
 	if votes.Valid {
 		th.Votes = votes.Int64
+	}
+	return nil
+}
+
+func (rep *Repository) Update(th *models.Thread) error {
+	slug := sql.NullString{}
+	created := sql.NullTime{}
+	votes := sql.NullInt64{}
+	args := make([]string, 0)
+	sqlStr := "UPDATE thread SET "
+	if th.Message != "" {
+		sqlStr += "message = $1 "
+		args = append(args, th.Message)
+	}
+	if th.Title != "" {
+		if len(args) == 1 {
+			sqlStr += ","
+		}
+		sqlStr += " title = $%d "
+		args = append(args, th.Title)
+		sqlStr = fmt.Sprintf(sqlStr, len(args))
+	}
+	if len(args) == 0 {
+		err := rep.db.QueryRow("SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, SUM(v.vote)::integer "+
+			"FROM thread t "+
+			"JOIN forum f on t.forum = f.slug "+
+			"LEFT JOIN vote v on t.id = v.thread "+
+			"WHERE t.slug = $1 OR t.id::citext = $1 "+
+			"GROUP BY f.slug, t.id", th.Slug).Scan(
+			&th.Id, &th.Title, &th.Message, &created, &slug, &th.Author, &th.Forum, &votes,
+		)
+		if err != nil {
+			return err
+		}
+		if created.Valid {
+			th.Created = created.Time.Format(time.RFC3339Nano)
+		}
+		if slug.Valid {
+			th.Slug = slug.String
+		}
+		if votes.Valid {
+			th.Votes = votes.Int64
+		}
+	} else {
+		sqlStr += "WHERE id::citext = $%d or slug = $%d RETURNING id, title, message, created, slug, usr, forum"
+		args = append(args, th.Slug)
+		sqlStr = fmt.Sprintf(sqlStr, len(args), len(args))
+		var err error
+		if len(args) == 2 {
+			err = rep.db.QueryRow(sqlStr, args[0], args[1]).Scan(
+				&th.Id,
+				&th.Title,
+				&th.Message,
+				&created,
+				&slug,
+				&th.Author,
+				&th.Forum,
+			)
+		} else {
+			err = rep.db.QueryRow(sqlStr, args[0], args[1], args[2]).Scan(
+				&th.Id,
+				&th.Title,
+				&th.Message,
+				&created,
+				&slug,
+				&th.Author,
+				&th.Forum,
+			)
+		}
+		if err != nil {
+			return err
+		}
+		if created.Valid {
+			th.Created = created.Time.Format(time.RFC3339Nano)
+		}
+		if slug.Valid {
+			th.Slug = slug.String
+		}
+		err = rep.db.QueryRow(
+			"SELECT SUM(v.vote) from vote v "+
+				"WHERE v.thread = $1",
+			th.Id,
+		).Scan(&votes)
+		if err != nil {
+			logrus.Error("SQL", err)
+		}
+		if votes.Valid {
+			th.Votes = votes.Int64
+		}
 	}
 	return nil
 }

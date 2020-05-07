@@ -51,3 +51,11 @@ func (tUC *Usecase) CreateVote(th *models.Thread, v *models.Vote) error {
 	_ = tUC.repo.GetVotes(th, v)
 	return nil
 }
+
+func (tUC *Usecase) UpdateThread(th *models.Thread) error {
+	err := tUC.repo.Update(th)
+	if err != nil {
+		return tools.ThreadNotExist
+	}
+	return nil
+}

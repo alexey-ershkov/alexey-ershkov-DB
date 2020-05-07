@@ -9,4 +9,5 @@ type Repository interface {
 	GetBySlugOrId(thread *models.Thread) error
 	InsertIntoVotes(vote *models.Vote) error
 	GetVotes(thread *models.Thread, vote *models.Vote) error
+	Update(thread *models.Thread) error
 }

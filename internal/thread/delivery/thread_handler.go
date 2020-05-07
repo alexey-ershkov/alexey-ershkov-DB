@@ -20,6 +20,7 @@ func NewThreadHandler(uc thread.Usecase, router *echo.Echo) {
 
 	router.POST("forum/:forum/create", thH.CreateThread())
 	router.GET("thread/:slug/details", thH.GetThreadInfo())
+	router.POST("thread/:slug/details", thH.UpdateThread())
 	router.POST("thread/:slug/vote", thH.CreateVote())
 }
 
@@ -96,6 +97,27 @@ func (thH *ThreadHandler) CreateVote() echo.HandlerFunc {
 			tools.HandleError(e)
 			return nil
 		}
+		err = c.JSON(http.StatusOK, th)
+		tools.HandleError(err)
+		return nil
+	}
+}
+
+func (thH *ThreadHandler) UpdateThread() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		logrus.Info(c.Request().Method, "   ", c.Request().URL)
+		th := &models.Thread{}
+		err := c.Bind(th)
+		tools.HandleError(err)
+		err = thH.thUC.UpdateThread(th)
+		if err == tools.ThreadNotExist {
+			err := c.JSON(http.StatusNotFound, tools.Message{
+				Message: "thread not found",
+			})
+			tools.HandleError(err)
+			return nil
+		}
+		tools.HandleError(err)
 		err = c.JSON(http.StatusOK, th)
 		tools.HandleError(err)
 		return nil
