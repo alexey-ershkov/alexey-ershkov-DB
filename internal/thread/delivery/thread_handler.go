@@ -19,6 +19,8 @@ func NewThreadHandler(uc thread.Usecase, router *echo.Echo) {
 	}
 
 	router.POST("forum/:forum/create", thH.CreateThread())
+	router.GET("thread/:slug/details", thH.GetThreadInfo())
+	router.POST("thread/:slug/vote", thH.CreateVote())
 }
 
 func (thH *ThreadHandler) CreateThread() echo.HandlerFunc {
@@ -46,6 +48,55 @@ func (thH *ThreadHandler) CreateThread() echo.HandlerFunc {
 			return err
 		}
 		err = c.JSON(http.StatusCreated, th)
+		tools.HandleError(err)
+		return nil
+	}
+}
+
+func (thH *ThreadHandler) GetThreadInfo() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		logrus.Info(c.Request().Method, "   ", c.Request().URL)
+		th := &models.Thread{}
+		err := c.Bind(th)
+		tools.HandleError(err)
+		err = thH.thUC.GetThreadInfo(th)
+		if err == tools.ThreadNotExist {
+			err := c.JSON(http.StatusNotFound, tools.Message{
+				Message: "thread not found",
+			})
+			tools.HandleError(err)
+			return nil
+		}
+		err = c.JSON(http.StatusOK, th)
+		tools.HandleError(err)
+		return nil
+	}
+}
+
+func (thH *ThreadHandler) CreateVote() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		logrus.Info(c.Request().Method, "   ", c.Request().URL)
+		th := &models.Thread{}
+		vote := &models.Vote{}
+		err := c.Bind(vote)
+		tools.HandleError(err)
+		th.Slug = c.Param("slug")
+		err = thH.thUC.CreateVote(th, vote)
+		if err == tools.UserNotExist {
+			e := c.JSON(http.StatusNotFound, tools.Message{
+				Message: "user not found",
+			})
+			tools.HandleError(e)
+			return nil
+		}
+		if err == tools.ThreadNotExist {
+			e := c.JSON(http.StatusNotFound, tools.Message{
+				Message: "thread not found",
+			})
+			tools.HandleError(e)
+			return nil
+		}
+		err = c.JSON(http.StatusOK, th)
 		tools.HandleError(err)
 		return nil
 	}
