@@ -23,7 +23,9 @@ func NewForumHandler(router *echo.Echo, uc forum.Usecase) {
 
 func (fh *ForumHandler) CreateForum() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		logrus.Info(c.Request().Method, "   ", c.Request().URL)
+		logrus.WithFields(logrus.Fields{
+			"method": c.Request().Method,
+		}).Info(c.Request().URL)
 		f := &models.Forum{}
 		err := c.Bind(f)
 		if err != nil {
@@ -52,7 +54,9 @@ func (fh *ForumHandler) CreateForum() echo.HandlerFunc {
 
 func (fh *ForumHandler) GetForumInfo() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		logrus.Info(c.Request().Method, "   ", c.Request().URL)
+		logrus.WithFields(logrus.Fields{
+			"method": c.Request().Method,
+		}).Info(c.Request().URL)
 		f := &models.Forum{}
 		f.Slug = c.Param("slug")
 		if err := fh.uc.GetForum(f); err != nil {
@@ -70,8 +74,11 @@ func (fh *ForumHandler) GetForumInfo() echo.HandlerFunc {
 
 func (fh *ForumHandler) GetForumThreads() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		logrus.Info(c.Request().Method, "   ", c.Request().URL)
+		logrus.WithFields(logrus.Fields{
+			"method": c.Request().Method,
+		}).Info(c.Request().URL)
 		f := &models.Forum{}
+		f.Slug = c.Param("slug")
 		err := c.Bind(f)
 		tools.HandleError(err)
 		if err := fh.uc.GetForum(f); err != nil {

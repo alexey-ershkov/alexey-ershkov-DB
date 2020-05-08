@@ -27,7 +27,9 @@ func NewUserHandler(uc user.Usecase, router *echo.Echo) *UserHandler {
 
 func (uh *UserHandler) AddUserHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		logrus.Info(c.Request().Method, "   ", c.Request().URL)
+		logrus.WithFields(logrus.Fields{
+			"method": c.Request().Method,
+		}).Info(c.Request().URL)
 		resp := &models.User{}
 		resp.Nickname = c.Param("nickname")
 		err := c.Bind(resp)
@@ -50,7 +52,9 @@ func (uh *UserHandler) AddUserHandler() echo.HandlerFunc {
 
 func (uh *UserHandler) GetUserHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		logrus.Info(c.Request().Method, "   ", c.Request().URL)
+		logrus.WithFields(logrus.Fields{
+			"method": c.Request().Method,
+		}).Info(c.Request().URL)
 		resp := &models.User{}
 		resp.Nickname = c.Param("nickname")
 		if err := uh.ucase.GetUser(resp); err != nil {
@@ -69,7 +73,9 @@ func (uh *UserHandler) GetUserHandler() echo.HandlerFunc {
 
 func (uh *UserHandler) UpdateUserHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		logrus.Info(c.Request().Method, "   ", c.Request().URL)
+		logrus.WithFields(logrus.Fields{
+			"method": c.Request().Method,
+		}).Info(c.Request().URL)
 		u := &models.User{}
 		u.Nickname = c.Param("nickname")
 		if err := uh.ucase.GetUser(u); err != nil {

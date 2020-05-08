@@ -26,8 +26,11 @@ func NewThreadHandler(uc thread.Usecase, router *echo.Echo) {
 
 func (thH *ThreadHandler) CreateThread() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		logrus.Info(c.Request().Method, "   ", c.Request().URL)
+		logrus.WithFields(logrus.Fields{
+			"method": c.Request().Method,
+		}).Info(c.Request().URL)
 		th := &models.Thread{}
+		th.Forum = c.Param("forum")
 		err := c.Bind(th)
 		tools.HandleError(err)
 		if err := thH.thUC.CreateThread(th); err != nil {
@@ -56,8 +59,11 @@ func (thH *ThreadHandler) CreateThread() echo.HandlerFunc {
 
 func (thH *ThreadHandler) GetThreadInfo() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		logrus.Info(c.Request().Method, "   ", c.Request().URL)
+		logrus.WithFields(logrus.Fields{
+			"method": c.Request().Method,
+		}).Info(c.Request().URL)
 		th := &models.Thread{}
+		th.Slug = c.Param("slug")
 		err := c.Bind(th)
 		tools.HandleError(err)
 		err = thH.thUC.GetThreadInfo(th)
@@ -76,12 +82,14 @@ func (thH *ThreadHandler) GetThreadInfo() echo.HandlerFunc {
 
 func (thH *ThreadHandler) CreateVote() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		logrus.Info(c.Request().Method, "   ", c.Request().URL)
+		logrus.WithFields(logrus.Fields{
+			"method": c.Request().Method,
+		}).Info(c.Request().URL)
 		th := &models.Thread{}
 		vote := &models.Vote{}
+		th.Slug = c.Param("slug")
 		err := c.Bind(vote)
 		tools.HandleError(err)
-		th.Slug = c.Param("slug")
 		err = thH.thUC.CreateVote(th, vote)
 		if err == tools.UserNotExist {
 			e := c.JSON(http.StatusNotFound, tools.Message{
@@ -105,8 +113,11 @@ func (thH *ThreadHandler) CreateVote() echo.HandlerFunc {
 
 func (thH *ThreadHandler) UpdateThread() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		logrus.Info(c.Request().Method, "   ", c.Request().URL)
+		logrus.WithFields(logrus.Fields{
+			"method": c.Request().Method,
+		}).Info(c.Request().URL)
 		th := &models.Thread{}
+		th.Slug = c.Param("slug")
 		err := c.Bind(th)
 		tools.HandleError(err)
 		err = thH.thUC.UpdateThread(th)

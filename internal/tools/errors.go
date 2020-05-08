@@ -17,5 +17,7 @@ var (
 	ThreadExist    = errors.New("thread already exist")
 	UserNotExist   = errors.New("user does't exist")
 	ThreadNotExist = errors.New("no such thread")
-	//SqlError       = errors.New("sql error")
+	SqlError       = errors.New("sql error")
+	ParentNotExist = errors.New("post parent not exist")
+	PostNotExist   = errors.New("post not exist")
 )
