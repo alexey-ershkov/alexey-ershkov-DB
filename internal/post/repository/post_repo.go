@@ -68,3 +68,20 @@ func (rep *PostRepository) GetById(p *models.Post) error {
 	}
 	return nil
 }
+func (rep *PostRepository) Update(p *models.Post) error {
+	created := sql.NullTime{}
+	err := rep.db.QueryRow(
+		"UPDATE post SET message = $1, isEdited = true "+
+			"WHERE id = $2 "+
+			"RETURNING usr, created, forum, isEdited, message, parent, thread",
+		p.Message,
+		p.Id,
+	).Scan(&p.Author, &created, &p.Forum, &p.IsEdited, &p.Message, &p.Parent, &p.Thread)
+	if err != nil {
+		return err
+	}
+	if created.Valid {
+		p.Created = created.Time.Format(time.RFC3339Nano)
+	}
+	return nil
+}

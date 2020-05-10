@@ -60,3 +60,17 @@ func (pUC *PostUsecase) GetPost(p *models.Post) error {
 	}
 	return nil
 }
+
+func (pUC *PostUsecase) UpdatePost(p *models.Post) error {
+	message := p.Message
+	if err := pUC.pRepo.GetById(p); err != nil {
+		return tools.PostNotExist
+	}
+	if message != "" && message != p.Message {
+		p.Message = message
+		if err := pUC.pRepo.Update(p); err != nil {
+			return tools.PostNotExist
+		}
+	}
+	return nil
+}

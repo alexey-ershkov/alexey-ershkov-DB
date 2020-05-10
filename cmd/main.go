@@ -37,6 +37,7 @@ func main() {
 		Password:             "postgres",
 		PreferSimpleProtocol: true,
 	}
+
 	dbConn, err := pgx.Connect(dbConf)
 	if err != nil {
 		logrus.Fatal(err)
@@ -55,7 +56,7 @@ func main() {
 	uHandler.NewUserHandler(uUC, server)
 	fHandler.NewForumHandler(server, fUC)
 	thHandler.NewThreadHandler(thUC, server)
-	pHandler.NewPostHandler(server, pUC)
+	pHandler.NewPostHandler(server, pUC, fUC, uUC, thUC)
 
 	logrus.Fatal(server.Start(":5000"))
 }
