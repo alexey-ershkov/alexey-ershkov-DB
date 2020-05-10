@@ -113,6 +113,53 @@ func (rep *Repository) Update(user *models.User) error {
 	return nil
 }
 
+func (rep *Repository) DeleteAll() error {
+	err := rep.db.QueryRow(
+		"DELETE FROM usr",
+	).Scan()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (rep *Repository) GetStatus(s *models.Status) error {
+	rows, err := rep.db.Query(
+		"SELECT count(*) FROM forum " +
+			"UNION ALL " +
+			"SELECT count(*) " +
+			"FROM post " +
+			"UNION ALL " +
+			"SELECT count(*) FROM thread " +
+			"UNION ALL " +
+			"SELECT count(*) FROM usr",
+	)
+	if err != nil {
+		return err
+	}
+	i := 0
+	for rows.Next() {
+		var err error
+		switch i {
+		case 0:
+			err = rows.Scan(&s.Forum)
+		case 1:
+			err = rows.Scan(&s.Post)
+		case 2:
+			err = rows.Scan(&s.Thread)
+		case 3:
+			err = rows.Scan(&s.User)
+		}
+		if err != nil {
+			rows.Close()
+			return err
+		}
+		i++
+	}
+	rows.Close()
+	return nil
+}
+
 func NewUserRepo(db *pgx.Conn) user.Repository {
 	return &Repository{
 		db: db,

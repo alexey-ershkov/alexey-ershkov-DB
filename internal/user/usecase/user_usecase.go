@@ -44,3 +44,19 @@ func (uc *UserUsecase) UpdateUser(u *models.User) error {
 	}
 	return nil
 }
+
+func (uc *UserUsecase) DeleteAll() error {
+	err := uc.Repo.DeleteAll()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (uc *UserUsecase) GetStatus(s *models.Status) error {
+	err := uc.Repo.GetStatus(s)
+	if err != nil {
+		return err
+	}
+	return nil
+}

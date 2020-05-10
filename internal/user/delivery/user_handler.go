@@ -18,6 +18,8 @@ func NewUserHandler(uc user.Usecase, router *echo.Echo) *UserHandler {
 		ucase: uc,
 	}
 
+	router.GET("/service/status", uh.GetStatus())
+	router.POST("/service/clear", uh.DeleteAll())
 	router.GET("/user/:nickname/profile", uh.GetUserHandler())
 	router.POST("/user/:nickname/profile", uh.UpdateUserHandler())
 	router.POST("/user/:nickname/create", uh.AddUserHandler())
@@ -100,6 +102,32 @@ func (uh *UserHandler) UpdateUserHandler() echo.HandlerFunc {
 		if err := c.JSON(http.StatusOK, u); err != nil {
 			tools.HandleError(err)
 		}
+		return nil
+	}
+}
+
+func (uh *UserHandler) DeleteAll() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		logrus.WithFields(logrus.Fields{
+			"method": c.Request().Method,
+		}).Info(c.Request().URL)
+		err := uh.ucase.DeleteAll()
+		tools.HandleError(err)
+		err = c.JSON(http.StatusOK, tools.Message{
+			Message: "all info deleted",
+		})
+		tools.HandleError(err)
+		return nil
+	}
+}
+
+func (uh *UserHandler) GetStatus() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		s := &models.Status{}
+		err := uh.ucase.GetStatus(s)
+		tools.HandleError(err)
+		err = c.JSON(http.StatusOK, s)
+		tools.HandleError(err)
 		return nil
 	}
 }
