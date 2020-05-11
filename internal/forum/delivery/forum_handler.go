@@ -19,6 +19,7 @@ func NewForumHandler(router *echo.Echo, uc forum.Usecase) {
 	router.POST("/forum/create", fh.CreateForum())
 	router.GET("/forum/:slug/details", fh.GetForumInfo())
 	router.GET("/forum/:slug/threads", fh.GetForumThreads())
+	router.GET("/forum/:slug/users", fh.GetForumUsers())
 }
 
 func (fh *ForumHandler) CreateForum() echo.HandlerFunc {
@@ -89,6 +90,27 @@ func (fh *ForumHandler) GetForumThreads() echo.HandlerFunc {
 			return nil
 		}
 		ths, err := fh.uc.GetForumThreads(f, c.QueryParam("desc"), c.QueryParam("limit"), c.QueryParam("since"))
+		tools.HandleError(err)
+		err = c.JSON(http.StatusOK, ths)
+		return nil
+	}
+}
+
+func (fh *ForumHandler) GetForumUsers() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		logrus.WithFields(logrus.Fields{
+			"method": c.Request().Method,
+		}).Info(c.Request().URL)
+		f := &models.Forum{}
+		f.Slug = c.Param("slug")
+		if err := fh.uc.GetForum(f); err != nil {
+			err := c.JSON(http.StatusNotFound, tools.Message{
+				Message: "forum not found",
+			})
+			tools.HandleError(err)
+			return nil
+		}
+		ths, err := fh.uc.GetForumUsers(f, c.QueryParam("desc"), c.QueryParam("limit"), c.QueryParam("since"))
 		tools.HandleError(err)
 		err = c.JSON(http.StatusOK, ths)
 		return nil

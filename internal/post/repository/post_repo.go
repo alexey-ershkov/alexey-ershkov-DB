@@ -44,6 +44,17 @@ func (rep *PostRepository) InsertInto(p []*models.Post) error {
 		if created.Valid {
 			val.Created = created.Time.Format(time.RFC3339Nano)
 		}
+		var nickname string
+		err = tx.QueryRow(
+			"INSERT INTO forum_users (forum, nickname) "+
+				"VALUES ($1,$2) "+
+				"RETURNING nickname",
+			val.Forum,
+			val.Author,
+		).Scan(&nickname)
+		if err != nil {
+			return err
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		logrus.Error("SQL cannot commit TX")

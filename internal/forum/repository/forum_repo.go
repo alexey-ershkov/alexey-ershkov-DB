@@ -94,3 +94,54 @@ func (rep *Repository) GetThreads(f *models.Forum, desc, limit, since string) ([
 	rows.Close()
 	return ths, nil
 }
+
+func (rep *Repository) GetUsers(f *models.Forum, desc, limit, since string) ([]models.User, error) {
+	usr := make([]models.User, 0)
+
+	sqlQuery := "SELECT DISTINCT u.email, u.fullname, u.nickname, u.about " +
+		"FROM forum_users " +
+		"JOIN usr u on forum_users.nickname = u.nickname " +
+		"WHERE forum = $1 "
+
+	if since != "" {
+		if desc == "true" {
+			sqlQuery += "AND u.nickname < $2 "
+		} else {
+			sqlQuery += "AND u.nickname > $2 "
+		}
+	}
+
+	sqlQuery += "ORDER BY u.nickname "
+
+	if desc == "true" {
+		sqlQuery += "DESC "
+	}
+
+	if limit != "" {
+		sqlQuery += "LIMIT " + limit
+	}
+
+	var rows *pgx.Rows
+	var err error
+	if since != "" {
+		rows, err = rep.db.Query(sqlQuery, f.Slug, since)
+	} else {
+		rows, err = rep.db.Query(sqlQuery, f.Slug)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		u := models.User{}
+		err := rows.Scan(&u.Email, &u.Fullname, &u.Nickname, &u.About)
+		if err != nil {
+			rows.Close()
+			return nil, err
+		}
+		usr = append(usr, u)
+	}
+	rows.Close()
+	return usr, nil
+}

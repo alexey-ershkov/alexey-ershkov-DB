@@ -38,3 +38,11 @@ func (uc *Usecase) GetForumThreads(f *models.Forum, desc, limit, since string) (
 	}
 	return ths, nil
 }
+
+func (uc *Usecase) GetForumUsers(f *models.Forum, desc, limit, since string) ([]models.User, error) {
+	usr, err := uc.repo.GetUsers(f, desc, limit, since)
+	if err != nil {
+		return nil, err
+	}
+	return usr, nil
+}

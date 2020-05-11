@@ -45,6 +45,17 @@ func (rep *Repository) InsertInto(th *models.Thread) error {
 	if err := row.Scan(&info); err != nil {
 		return err
 	}
+	var nickname string
+	err := rep.db.QueryRow(
+		"INSERT INTO forum_users (forum, nickname) "+
+			"VALUES ($1,$2) "+
+			"RETURNING nickname",
+		th.Forum,
+		th.Author,
+	).Scan(&nickname)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
