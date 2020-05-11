@@ -48,6 +48,7 @@ func (rep *PostRepository) InsertInto(p []*models.Post) error {
 		err = tx.QueryRow(
 			"INSERT INTO forum_users (forum, nickname) "+
 				"VALUES ($1,$2) "+
+				"ON CONFLICT (forum, nickname) DO UPDATE SET nickname = excluded.nickname "+
 				"RETURNING nickname",
 			val.Forum,
 			val.Author,

@@ -98,7 +98,7 @@ func (rep *Repository) GetThreads(f *models.Forum, desc, limit, since string) ([
 func (rep *Repository) GetUsers(f *models.Forum, desc, limit, since string) ([]models.User, error) {
 	usr := make([]models.User, 0)
 
-	sqlQuery := "SELECT DISTINCT u.email, u.fullname, u.nickname, u.about " +
+	sqlQuery := "SELECT u.email, u.fullname, u.nickname, u.about " +
 		"FROM forum_users " +
 		"JOIN usr u on forum_users.nickname = u.nickname " +
 		"WHERE forum = $1 "

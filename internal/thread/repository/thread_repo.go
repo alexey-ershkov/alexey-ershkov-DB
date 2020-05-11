@@ -49,6 +49,7 @@ func (rep *Repository) InsertInto(th *models.Thread) error {
 	err := rep.db.QueryRow(
 		"INSERT INTO forum_users (forum, nickname) "+
 			"VALUES ($1,$2) "+
+			"ON CONFLICT (forum,nickname) DO UPDATE SET nickname = excluded.nickname "+
 			"RETURNING nickname",
 		th.Forum,
 		th.Author,
