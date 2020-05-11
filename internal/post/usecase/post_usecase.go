@@ -45,6 +45,7 @@ func (pUC *PostUsecase) CreatePosts(p []*models.Post, th *models.Thread) error {
 			if sp.Thread != val.Thread {
 				return tools.ParentNotExist
 			}
+			val.Path = sp.Path
 		}
 	}
 	if err := pUC.pRepo.InsertInto(p); err != nil {

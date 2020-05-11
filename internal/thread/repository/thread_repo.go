@@ -45,15 +45,13 @@ func (rep *Repository) InsertInto(th *models.Thread) error {
 	if err := row.Scan(&info); err != nil {
 		return err
 	}
-	var nickname string
-	err := rep.db.QueryRow(
+	_, err := rep.db.Exec(
 		"INSERT INTO forum_users (forum, nickname) "+
 			"VALUES ($1,$2) "+
-			"ON CONFLICT (forum,nickname) DO UPDATE SET nickname = excluded.nickname "+
-			"RETURNING nickname",
+			"ON CONFLICT (forum,nickname) DO NOTHING ",
 		th.Forum,
 		th.Author,
-	).Scan(&nickname)
+	)
 	if err != nil {
 		return err
 	}

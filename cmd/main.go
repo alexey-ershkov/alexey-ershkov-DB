@@ -35,7 +35,7 @@ func main() {
 		User:                 "farcoad",
 		Database:             "forum",
 		Password:             "postgres",
-		PreferSimpleProtocol: true,
+		PreferSimpleProtocol: false,
 	}
 
 	dbConn, err := pgx.Connect(dbConf)
