@@ -45,9 +45,9 @@ func NewPostHandler(router *echo.Echo, pUC post.Usecase, fUC forum.Usecase, uUC 
 
 func (ph *PostHandler) CreatePosts() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		logrus.WithFields(logrus.Fields{
+		/*logrus.WithFields(logrus.Fields{
 			"method": c.Request().Method,
-		}).Info(c.Request().URL)
+		}).Info(c.Request().URL)*/
 		p := make([]*models.Post, 0)
 		err := c.Bind(&p)
 		tools.HandleError(err)
@@ -83,9 +83,9 @@ func (ph *PostHandler) CreatePosts() echo.HandlerFunc {
 
 func (ph *PostHandler) GetPost() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		logrus.WithFields(logrus.Fields{
+		/*logrus.WithFields(logrus.Fields{
 			"method": c.Request().Method,
-		}).Info(c.Request().URL)
+		}).Info(c.Request().URL)*/
 		str := c.QueryParam("related")
 		related := strings.Split(str, ",")
 		p := &models.Post{}
@@ -139,9 +139,9 @@ func (ph *PostHandler) GetPost() echo.HandlerFunc {
 
 func (ph *PostHandler) UpdatePost() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		logrus.WithFields(logrus.Fields{
+		/*logrus.WithFields(logrus.Fields{
 			"method": c.Request().Method,
-		}).Info(c.Request().URL)
+		}).Info(c.Request().URL)*/
 		p := &models.Post{}
 		err := c.Bind(p)
 		tools.HandleError(err)

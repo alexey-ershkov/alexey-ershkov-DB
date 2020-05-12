@@ -27,9 +27,9 @@ func NewThreadHandler(uc thread.Usecase, router *echo.Echo) {
 
 func (thH *ThreadHandler) CreateThread() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		logrus.WithFields(logrus.Fields{
+		/*logrus.WithFields(logrus.Fields{
 			"method": c.Request().Method,
-		}).Info(c.Request().URL)
+		}).Info(c.Request().URL)*/
 		th := &models.Thread{}
 		th.Forum = c.Param("forum")
 		err := c.Bind(th)
@@ -60,9 +60,9 @@ func (thH *ThreadHandler) CreateThread() echo.HandlerFunc {
 
 func (thH *ThreadHandler) GetThreadInfo() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		logrus.WithFields(logrus.Fields{
+		/*logrus.WithFields(logrus.Fields{
 			"method": c.Request().Method,
-		}).Info(c.Request().URL)
+		}).Info(c.Request().URL)*/
 		th := &models.Thread{}
 		th.Slug = c.Param("slug")
 		err := c.Bind(th)
@@ -83,9 +83,9 @@ func (thH *ThreadHandler) GetThreadInfo() echo.HandlerFunc {
 
 func (thH *ThreadHandler) CreateVote() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		logrus.WithFields(logrus.Fields{
+		/*logrus.WithFields(logrus.Fields{
 			"method": c.Request().Method,
-		}).Info(c.Request().URL)
+		}).Info(c.Request().URL)*/
 		th := &models.Thread{}
 		vote := &models.Vote{}
 		th.Slug = c.Param("slug")
@@ -114,9 +114,9 @@ func (thH *ThreadHandler) CreateVote() echo.HandlerFunc {
 
 func (thH *ThreadHandler) UpdateThread() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		logrus.WithFields(logrus.Fields{
+		/*logrus.WithFields(logrus.Fields{
 			"method": c.Request().Method,
-		}).Info(c.Request().URL)
+		}).Info(c.Request().URL)*/
 		th := &models.Thread{}
 		th.Slug = c.Param("slug")
 		err := c.Bind(th)
@@ -138,9 +138,9 @@ func (thH *ThreadHandler) UpdateThread() echo.HandlerFunc {
 
 func (thH *ThreadHandler) GetThreadPosts() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		logrus.WithFields(logrus.Fields{
+		/*logrus.WithFields(logrus.Fields{
 			"method": c.Request().Method,
-		}).Info(c.Request().URL)
+		}).Info(c.Request().URL)*/
 		th := models.Thread{}
 		th.Slug = c.Param("slug")
 		posts, err := thH.thUC.GetThreadPosts(
