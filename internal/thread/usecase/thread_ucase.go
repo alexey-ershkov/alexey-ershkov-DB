@@ -59,3 +59,14 @@ func (tUC *Usecase) UpdateThread(th *models.Thread) error {
 	}
 	return nil
 }
+
+func (tUC *Usecase) GetThreadPosts(th *models.Thread, desc, sort, limit, since string) ([]models.Post, error) {
+	if err := tUC.repo.GetBySlugOrId(th); err != nil {
+		return nil, tools.ThreadNotExist
+	}
+	posts, err := tUC.repo.GetPosts(th, desc, sort, limit, since)
+	if err != nil {
+		return nil, err
+	}
+	return posts, nil
+}

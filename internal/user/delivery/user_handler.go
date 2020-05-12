@@ -19,7 +19,7 @@ func NewUserHandler(uc user.Usecase, router *echo.Echo) *UserHandler {
 	}
 
 	router.GET("/service/status", uh.GetStatus())
-	//router.POST("/service/clear", uh.DeleteAll())
+	router.POST("/service/clear", uh.DeleteAll())
 	router.GET("/user/:nickname/profile", uh.GetUserHandler())
 	router.POST("/user/:nickname/profile", uh.UpdateUserHandler())
 	router.POST("/user/:nickname/create", uh.AddUserHandler())

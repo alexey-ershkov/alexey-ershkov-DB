@@ -268,3 +268,112 @@ func (rep *Repository) Update(th *models.Thread) error {
 	}
 	return nil
 }
+
+func (rep *Repository) GetPosts(th *models.Thread, desc, sort, limit, since string) ([]models.Post, error) {
+	posts := make([]models.Post, 0)
+	var sqlString string
+	if sort == "tree" {
+
+		sqlString = "SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread " +
+			"FROM post p " +
+			"WHERE p.thread = $1 "
+
+		if since != "" {
+			if desc == "true" {
+				sqlString += "AND p.path::bigint[] < (SELECT path FROM post WHERE id = " + since + " )::bigint[] "
+			} else {
+				sqlString += "AND p.path::bigint[] > (SELECT path FROM post WHERE id = " + since + " )::bigint[] "
+			}
+		}
+
+		sqlString += "ORDER BY p.path "
+
+		if desc == "true" {
+			sqlString += "DESC "
+		}
+
+		if limit != "" {
+			sqlString += "LIMIT " + limit + " "
+		}
+	} else if sort == "parent_tree" {
+
+		sqlString = "SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread FROM " +
+			"(" +
+			"   SELECT * FROM post p2 " +
+			"   WHERE p2.thread = $1 AND p2.parent = 0 "
+
+		if since != "" {
+			if desc == "true" {
+				sqlString += "AND p2.path[1] < (SELECT path[1] FROM post WHERE id = " + since + " ) "
+			} else {
+				sqlString += "AND p2.path[1] > (SELECT path[1] FROM post WHERE id = " + since + " ) "
+			}
+		}
+		sqlString += "ORDER BY p2.path "
+		if desc == "true" {
+			sqlString += "DESC "
+		}
+		if limit != "" {
+			sqlString += "LIMIT " + limit + " "
+		}
+		sqlString += ") AS prt " +
+			"JOIN post p ON prt.path[1] = p.path[1] " +
+			"ORDER BY p.path[1] "
+		if desc == "true" {
+			sqlString += "DESC "
+		}
+		sqlString += ", p.path "
+
+	} else {
+
+		sqlString = "SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread " +
+			"FROM post p " +
+			"WHERE p.thread = $1 "
+
+		if since != "" {
+			if desc == "true" {
+				sqlString += "AND p.id < " + since + " "
+			} else {
+				sqlString += "AND p.id > " + since + " "
+			}
+		}
+		sqlString += "ORDER BY p.created "
+		if desc == "true" {
+			sqlString += "DESC "
+		}
+		sqlString += ", p.id "
+		if desc == "true" {
+			sqlString += "DESC "
+		}
+		if limit != "" {
+			sqlString += "LIMIT " + limit + " "
+		}
+	}
+	rows, err := rep.db.Query(sqlString, th.Id)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		created := sql.NullTime{}
+		p := models.Post{}
+		err := rows.Scan(
+			&p.Id,
+			&p.Author,
+			&created,
+			&p.Forum,
+			&p.IsEdited,
+			&p.Message,
+			&p.Parent,
+			&p.Thread,
+		)
+		if err != nil {
+			return nil, err
+		}
+		if created.Valid {
+			p.Created = created.Time.Format(time.RFC3339Nano)
+		}
+		posts = append(posts, p)
+	}
+	rows.Close()
+	return posts, nil
+}

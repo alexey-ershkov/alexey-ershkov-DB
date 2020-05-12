@@ -22,6 +22,7 @@ func NewThreadHandler(uc thread.Usecase, router *echo.Echo) {
 	router.GET("thread/:slug/details", thH.GetThreadInfo())
 	router.POST("thread/:slug/details", thH.UpdateThread())
 	router.POST("thread/:slug/vote", thH.CreateVote())
+	router.GET("/thread/:slug/posts", thH.GetThreadPosts())
 }
 
 func (thH *ThreadHandler) CreateThread() echo.HandlerFunc {
@@ -131,6 +132,37 @@ func (thH *ThreadHandler) UpdateThread() echo.HandlerFunc {
 		tools.HandleError(err)
 		err = c.JSON(http.StatusOK, th)
 		tools.HandleError(err)
+		return nil
+	}
+}
+
+func (thH *ThreadHandler) GetThreadPosts() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		logrus.WithFields(logrus.Fields{
+			"method": c.Request().Method,
+		}).Info(c.Request().URL)
+		th := models.Thread{}
+		th.Slug = c.Param("slug")
+		posts, err := thH.thUC.GetThreadPosts(
+			&th,
+			c.QueryParam("desc"),
+			c.QueryParam("sort"),
+			c.QueryParam("limit"),
+			c.QueryParam("since"),
+		)
+		if err != nil {
+			if err == tools.ThreadNotExist {
+				e := c.JSON(http.StatusNotFound, tools.Message{
+					Message: "Thread not found",
+				})
+				tools.HandleError(e)
+				return nil
+			}
+			tools.HandleError(err)
+			return nil
+		}
+		e := c.JSON(http.StatusOK, posts)
+		tools.HandleError(e)
 		return nil
 	}
 }
