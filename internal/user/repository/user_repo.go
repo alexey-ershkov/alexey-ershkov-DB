@@ -114,9 +114,9 @@ func (rep *Repository) Update(user *models.User) error {
 }
 
 func (rep *Repository) DeleteAll() error {
-	err := rep.db.QueryRow(
+	_, err := rep.db.Exec(
 		"DELETE FROM usr",
-	).Scan()
+	)
 	if err != nil {
 		return err
 	}

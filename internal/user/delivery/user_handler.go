@@ -18,11 +18,11 @@ func NewUserHandler(uc user.Usecase, router *echo.Echo) *UserHandler {
 		ucase: uc,
 	}
 
-	router.GET("/service/status", uh.GetStatus())
-	router.POST("/service/clear", uh.DeleteAll())
-	router.GET("/user/:nickname/profile", uh.GetUserHandler())
-	router.POST("/user/:nickname/profile", uh.UpdateUserHandler())
-	router.POST("/user/:nickname/create", uh.AddUserHandler())
+	router.GET("/api/service/status", uh.GetStatus())
+	router.POST("/api/service/clear", uh.DeleteAll())
+	router.GET("/api/user/:nickname/profile", uh.GetUserHandler())
+	router.POST("/api/user/:nickname/profile", uh.UpdateUserHandler())
+	router.POST("/api/user/:nickname/create", uh.AddUserHandler())
 
 	return uh
 }

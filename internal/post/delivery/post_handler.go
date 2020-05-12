@@ -38,9 +38,9 @@ func NewPostHandler(router *echo.Echo, pUC post.Usecase, fUC forum.Usecase, uUC 
 		thUC: thUC,
 	}
 
-	router.POST("/thread/:slug/create", ph.CreatePosts())
-	router.GET("/post/:id/details", ph.GetPost())
-	router.POST("/post/:id/details", ph.UpdatePost())
+	router.POST("/api/thread/:slug/create", ph.CreatePosts())
+	router.GET("/api/post/:id/details", ph.GetPost())
+	router.POST("/api/post/:id/details", ph.UpdatePost())
 }
 
 func (ph *PostHandler) CreatePosts() echo.HandlerFunc {

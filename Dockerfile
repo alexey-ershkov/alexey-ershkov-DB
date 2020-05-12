@@ -1,4 +1,8 @@
-FROM ubuntu:18.04
+FROM golang:1.13 AS build
+
+ADD . /opt/app
+WORKDIR /opt/app
+RUN go build ./cmd/main.go
 
 FROM ubuntu:18.04
 
@@ -40,27 +44,11 @@ VOLUME  ["/etc/postgresql", "/var/log/postgresql", "/var/lib/postgresql"]
 # Back to the root user
 USER root
 
-
-RUN apt-get install -y curl
-RUN curl —silent —location https://deb.nodesource.com/setup_13.x | bash -
-RUN apt-get install -y nodejs
-RUN apt-get install -y build-essential
-
-# создание директории приложения
 WORKDIR /usr/src/app
 
-# установка зависимостей
-# символ астериск ("*") используется для того чтобы по возможности
-# скопировать оба файла: package.json и package-lock.json
-COPY package*.json ./
-
-RUN npm install
-# Если вы создаете сборку для продакшн
-# RUN npm ci --only=production
-
-# копируем исходный код
 COPY . .
+COPY --from=build /opt/app/main .
 
 EXPOSE 5000
 ENV PGPASSWORD postgres
-CMD service postgresql start && psql -h localhost -d forum -U farcoad -p 5432 -a -q -f ./init/init.sql && node index.js
+CMD service postgresql start && ls -a && psql -h localhost -d forum -U farcoad -p 5432 -a -q -f ./init/init.sql && ./main

@@ -16,10 +16,10 @@ type ForumHandler struct {
 func NewForumHandler(router *echo.Echo, uc forum.Usecase) {
 	fh := &ForumHandler{uc: uc}
 
-	router.POST("/forum/create", fh.CreateForum())
-	router.GET("/forum/:slug/details", fh.GetForumInfo())
-	router.GET("/forum/:slug/threads", fh.GetForumThreads())
-	router.GET("/forum/:slug/users", fh.GetForumUsers())
+	router.POST("/api/forum/create", fh.CreateForum())
+	router.GET("/api/forum/:slug/details", fh.GetForumInfo())
+	router.GET("/api/forum/:slug/threads", fh.GetForumThreads())
+	router.GET("/api/forum/:slug/users", fh.GetForumUsers())
 }
 
 func (fh *ForumHandler) CreateForum() echo.HandlerFunc {

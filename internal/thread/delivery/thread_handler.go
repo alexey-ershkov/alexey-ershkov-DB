@@ -18,11 +18,11 @@ func NewThreadHandler(uc thread.Usecase, router *echo.Echo) {
 		thUC: uc,
 	}
 
-	router.POST("forum/:forum/create", thH.CreateThread())
-	router.GET("thread/:slug/details", thH.GetThreadInfo())
-	router.POST("thread/:slug/details", thH.UpdateThread())
-	router.POST("thread/:slug/vote", thH.CreateVote())
-	router.GET("/thread/:slug/posts", thH.GetThreadPosts())
+	router.POST("/api/forum/:forum/create", thH.CreateThread())
+	router.GET("/api/thread/:slug/details", thH.GetThreadInfo())
+	router.POST("/api/thread/:slug/details", thH.UpdateThread())
+	router.POST("/api/thread/:slug/vote", thH.CreateVote())
+	router.GET("/api/thread/:slug/posts", thH.GetThreadPosts())
 }
 
 func (thH *ThreadHandler) CreateThread() echo.HandlerFunc {
