@@ -9,7 +9,7 @@ drop table IF EXISTS forum_users CASCADE;
 
 create EXTENSION IF NOT EXISTS CITEXT;
 
-create table usr
+create unlogged table usr
 (
     email    citext not null
         constraint user_pk
@@ -23,7 +23,7 @@ create table usr
 create unique index usr_nickname_uindex
     on usr (nickname);
 
-create table forum
+create unlogged table forum
 (
     slug  citext not null
         constraint forum_pk
@@ -36,7 +36,7 @@ create table forum
 );
 
 
-create table thread
+create unlogged table thread
 (
     id      serial not null
         constraint thread_pk
@@ -59,7 +59,7 @@ create table thread
 create unique index thread_slug_uindex
     on thread (slug);
 
-create table post
+create unlogged table post
 (
     id       bigserial             not null
         constraint post_pk
@@ -85,7 +85,7 @@ create table post
 
 
 
-create table vote
+create unlogged table vote
 (
     id     serial  not null
         constraint vote_pk
@@ -104,7 +104,7 @@ create table vote
 );
 
 
-create table forum_users
+create unlogged table forum_users
 (
     forum    citext not null
         constraint forum_users_forum_slug_fk
