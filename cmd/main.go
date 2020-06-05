@@ -35,7 +35,7 @@ func main() {
 		User:                 "farcoad",
 		Database:             "forum",
 		Password:             "postgres",
-		PreferSimpleProtocol: false,
+		PreferSimpleProtocol: true,
 	}
 
 	dbPoolConf := pgx.ConnPoolConfig{
