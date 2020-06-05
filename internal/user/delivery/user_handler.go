@@ -37,17 +37,18 @@ func (uh *UserHandler) AddUserHandler() echo.HandlerFunc {
 		err := c.Bind(resp)
 		tools.HandleError(err)
 		if users, err := uh.ucase.CreateUser(resp); err != nil {
-			if err == tools.UserExist {
+			switch err {
+			case tools.UserExist:
 				err = c.JSON(http.StatusConflict, users)
 				tools.HandleError(err)
-				return nil
+			default:
+				logrus.Error(err)
+				return err
 			}
-			logrus.Error(err)
-			return err
+		} else {
+			err = c.JSON(http.StatusCreated, resp)
+			tools.HandleError(err)
 		}
-
-		err = c.JSON(http.StatusCreated, resp)
-		tools.HandleError(err)
 		return nil
 	}
 }
@@ -60,15 +61,21 @@ func (uh *UserHandler) GetUserHandler() echo.HandlerFunc {
 		resp := &models.User{}
 		resp.Nickname = c.Param("nickname")
 		if err := uh.ucase.GetUser(resp); err != nil {
-			msg := &tools.Message{
-				Message: "user not found",
+			switch err {
+			case tools.UserNotExist:
+				msg := &tools.Message{
+					Message: "user not found",
+				}
+				err = c.JSON(http.StatusNotFound, msg)
+				tools.HandleError(err)
+			default:
+				logrus.Error(err)
+				return err
 			}
-			err = c.JSON(http.StatusNotFound, msg)
+		} else {
+			err := c.JSON(http.StatusOK, resp)
 			tools.HandleError(err)
-			return nil
 		}
-		err := c.JSON(http.StatusOK, resp)
-		tools.HandleError(err)
 		return nil
 	}
 }
@@ -80,26 +87,31 @@ func (uh *UserHandler) UpdateUserHandler() echo.HandlerFunc {
 		}).Info(c.Request().URL)*/
 		u := &models.User{}
 		u.Nickname = c.Param("nickname")
-		if err := uh.ucase.GetUser(u); err != nil {
-			if err := c.JSON(http.StatusNotFound, tools.Message{
-				"user doesn't exist",
-			}); err != nil {
-				tools.HandleError(err)
-			}
-			return nil
-		}
 		if err := c.Bind(u); err != nil {
 			tools.HandleError(err)
 		}
 		if err := uh.ucase.UpdateUser(u); err != nil {
-			if err := c.JSON(http.StatusConflict, tools.Message{
-				Message: "conflict while updating",
-			}); err != nil {
+			switch err {
+			case tools.UserNotExist:
+				err := c.JSON(
+					http.StatusNotFound,
+					tools.Message{
+						Message: "user doesn't exist",
+					})
 				tools.HandleError(err)
+			case tools.UserNotUpdated:
+				err := c.JSON(
+					http.StatusConflict,
+					tools.Message{
+						Message: "conflict while updating",
+					})
+				tools.HandleError(err)
+			default:
+				logrus.Error(err)
+				return err
 			}
-			return nil
-		}
-		if err := c.JSON(http.StatusOK, u); err != nil {
+		} else {
+			err := c.JSON(http.StatusOK, u)
 			tools.HandleError(err)
 		}
 		return nil

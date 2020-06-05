@@ -12,7 +12,8 @@ func HandleError(e error) {
 }
 
 var (
-	UserExist = errors.New("user exist")
+	UserExist      = errors.New("user exist")
+	UserNotUpdated = errors.New("can't update user")
 	//ForumExist = errors.New("forum exist")
 	ThreadExist    = errors.New("thread already exist")
 	UserNotExist   = errors.New("user does't exist")
