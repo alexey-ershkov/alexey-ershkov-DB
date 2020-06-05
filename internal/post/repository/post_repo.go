@@ -110,3 +110,18 @@ func (rep *PostRepository) Update(p *models.Post) error {
 	}
 	return nil
 }
+
+func (rep *PostRepository) CreateTx() (*pgx.Tx, error) {
+	tx, err := rep.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
+}
+
+func (rep *PostRepository) CommitTx(tx *pgx.Tx) error {
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	return nil
+}

@@ -11,12 +11,11 @@ create EXTENSION IF NOT EXISTS CITEXT;
 
 create unlogged table usr
 (
-    email    citext not null
-        constraint user_pk
-            primary key,
+    email    citext not null,
     fullname text   not null,
     nickname citext not null,
-    about    text
+    about    text,
+    constraint user_pk primary key (email)
 );
 
 

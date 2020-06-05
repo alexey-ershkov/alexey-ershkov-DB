@@ -18,29 +18,31 @@ func NewUserRepo(db *pgx.ConnPool) user.Repository {
 	}
 }
 
-func (rep *Repository) InsertInto(user *models.User) error {
+func (rep *Repository) InsertInto(tx *pgx.Tx, user *models.User) error {
 	var info string
 	about := &sql.NullString{}
 	if user.About != "" {
 		about.String = user.About
 		about.Valid = true
 	}
-	err := rep.db.QueryRow(
-		"INSERT INTO usr (email, fullname, nickname, about) VALUES ($1, $2, $3, $4) RETURNING email",
+	err := tx.QueryRow(
+		"INSERT INTO usr (email, fullname, nickname, about) "+
+			"VALUES ($1, $2, $3, $4) "+
+			"ON CONFLICT DO NOTHING "+
+			"RETURNING email",
 		user.Email,
 		user.Fullname,
 		user.Nickname,
 		about,
 	).Scan(&info)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 	return nil
 }
 
-func (rep *Repository) GetByNickname(user *models.User) error {
-	row := rep.db.QueryRow(
+func (rep *Repository) GetByNickname(tx *pgx.Tx, user *models.User) error {
+	row := tx.QueryRow(
 		`SELECT u.email, u.fullname, u.nickname, u.about FROM usr u WHERE nickname = $1`,
 		user.Nickname,
 	)
@@ -58,8 +60,8 @@ func (rep *Repository) GetByNickname(user *models.User) error {
 	return nil
 }
 
-func (rep *Repository) GetByNicknameOrEmail(user *models.User) ([]models.User, error) {
-	rows, err := rep.db.Query(
+func (rep *Repository) GetByNicknameOrEmail(tx *pgx.Tx, user *models.User) ([]models.User, error) {
+	rows, err := tx.Query(
 		"SELECT u.email, u.fullname, u.nickname, u.about FROM usr u WHERE nickname = $1 OR email = $2",
 		user.Nickname,
 		user.Email,
@@ -86,7 +88,7 @@ func (rep *Repository) GetByNicknameOrEmail(user *models.User) ([]models.User, e
 	return users, nil
 }
 
-func (rep *Repository) Update(user *models.User) error {
+func (rep *Repository) Update(tx *pgx.Tx, user *models.User) error {
 	var info string
 	sqlStr := "UPDATE usr SET " +
 		"email = $1, " +
@@ -107,11 +109,11 @@ func (rep *Repository) Update(user *models.User) error {
 	var err error
 	switch len(args) {
 	case 2:
-		err = rep.db.QueryRow(sqlStr, args[0], args[1]).Scan(&info)
+		err = tx.QueryRow(sqlStr, args[0], args[1]).Scan(&info)
 	case 3:
-		err = rep.db.QueryRow(sqlStr, args[0], args[1], args[2]).Scan(&info)
+		err = tx.QueryRow(sqlStr, args[0], args[1], args[2]).Scan(&info)
 	case 4:
-		err = rep.db.QueryRow(sqlStr, args[0], args[1], args[2], args[3]).Scan(&info)
+		err = tx.QueryRow(sqlStr, args[0], args[1], args[2], args[3]).Scan(&info)
 	}
 	if err != nil {
 		return err
@@ -129,8 +131,8 @@ func (rep *Repository) DeleteAll() error {
 	return nil
 }
 
-func (rep *Repository) GetStatus(s *models.Status) error {
-	rows, err := rep.db.Query(
+func (rep *Repository) GetStatus(tx *pgx.Tx, s *models.Status) error {
+	rows, err := tx.Query(
 		"SELECT count(*) FROM forum " +
 			"UNION ALL " +
 			"SELECT count(*) " +
@@ -163,5 +165,20 @@ func (rep *Repository) GetStatus(s *models.Status) error {
 		i++
 	}
 	rows.Close()
+	return nil
+}
+
+func (rep *Repository) CreateTx() (*pgx.Tx, error) {
+	tx, err := rep.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
+}
+
+func (rep *Repository) CommitTx(tx *pgx.Tx) error {
+	if err := tx.Commit(); err != nil {
+		return err
+	}
 	return nil
 }
