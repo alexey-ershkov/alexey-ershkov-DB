@@ -5,6 +5,7 @@ import (
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/models"
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/tools"
 	"github.com/labstack/echo/v4"
+	"github.com/sirupsen/logrus"
 	"net/http"
 )
 
@@ -32,22 +33,23 @@ func (fh *ForumHandler) CreateForum() echo.HandlerFunc {
 			tools.HandleError(err)
 		}
 		if err := fh.uc.CreateForum(f); err != nil {
-			if err := fh.uc.GetForum(f); err != nil {
+			switch err {
+			case tools.UserNotExist:
 				err := c.JSON(http.StatusNotFound, tools.Message{
 					Message: "User not found",
 				})
 				tools.HandleError(err)
-				return nil
+			case tools.ForumExist:
+				err := c.JSON(http.StatusConflict, f)
+				tools.HandleError(err)
+			default:
+				logrus.Error(err)
+				return err
 			}
-			err := c.JSON(http.StatusConflict, f)
-			tools.HandleError(err)
-			return nil
-		}
-		if err := fh.uc.GetForum(f); err != nil {
+		} else {
+			err = c.JSON(http.StatusCreated, f)
 			tools.HandleError(err)
 		}
-		err = c.JSON(http.StatusCreated, f)
-		tools.HandleError(err)
 		return nil
 	}
 }
@@ -81,16 +83,28 @@ func (fh *ForumHandler) GetForumThreads() echo.HandlerFunc {
 		f.Slug = c.Param("slug")
 		err := c.Bind(f)
 		tools.HandleError(err)
-		if err := fh.uc.GetForum(f); err != nil {
-			err := c.JSON(http.StatusNotFound, tools.Message{
-				Message: "forum not found",
-			})
+		ths, err := fh.uc.GetForumThreads(
+			f,
+			c.QueryParam("desc"),
+			c.QueryParam("limit"),
+			c.QueryParam("since"),
+		)
+		if err != nil {
+			switch err {
+			case tools.ForumNotExist:
+				err := c.JSON(http.StatusNotFound,
+					tools.Message{
+						Message: "forum not found",
+					})
+				tools.HandleError(err)
+			default:
+				tools.HandleError(err)
+				return err
+			}
+		} else {
 			tools.HandleError(err)
-			return nil
+			err = c.JSON(http.StatusOK, ths)
 		}
-		ths, err := fh.uc.GetForumThreads(f, c.QueryParam("desc"), c.QueryParam("limit"), c.QueryParam("since"))
-		tools.HandleError(err)
-		err = c.JSON(http.StatusOK, ths)
 		return nil
 	}
 }
@@ -102,16 +116,23 @@ func (fh *ForumHandler) GetForumUsers() echo.HandlerFunc {
 		}).Info(c.Request().URL)*/
 		f := &models.Forum{}
 		f.Slug = c.Param("slug")
-		if err := fh.uc.GetForum(f); err != nil {
-			err := c.JSON(http.StatusNotFound, tools.Message{
-				Message: "forum not found",
-			})
+		usrs, err := fh.uc.GetForumUsers(f, c.QueryParam("desc"), c.QueryParam("limit"), c.QueryParam("since"))
+		if err != nil {
+			switch err {
+			case tools.ForumNotExist:
+				err := c.JSON(http.StatusNotFound,
+					tools.Message{
+						Message: "forum not found",
+					})
+				tools.HandleError(err)
+			default:
+				tools.HandleError(err)
+				return err
+			}
+		} else {
+			err = c.JSON(http.StatusOK, usrs)
 			tools.HandleError(err)
-			return nil
 		}
-		ths, err := fh.uc.GetForumUsers(f, c.QueryParam("desc"), c.QueryParam("limit"), c.QueryParam("since"))
-		tools.HandleError(err)
-		err = c.JSON(http.StatusOK, ths)
 		return nil
 	}
 }
