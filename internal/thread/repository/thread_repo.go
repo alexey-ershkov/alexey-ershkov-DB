@@ -20,7 +20,7 @@ func NewThreadRepository(db *pgx.ConnPool) thread.Repository {
 	}
 }
 
-func (rep *Repository) InsertInto(th *models.Thread) error {
+func (rep *Repository) InsertInto(tx *pgx.Tx, th *models.Thread) error {
 	slug := &sql.NullString{}
 	if th.Slug != "" {
 		slug.String = th.Slug
@@ -31,8 +31,9 @@ func (rep *Repository) InsertInto(th *models.Thread) error {
 		created.String = th.Created
 		created.Valid = true
 	}
-	row := rep.db.QueryRow(
+	row := tx.QueryRow(
 		"INSERT INTO thread (usr, created, forum, message, title, slug) VALUES ($1, $2, $3, $4, $5, $6)"+
+			"ON CONFLICT DO NOTHING "+
 			"RETURNING id",
 		th.Author,
 		created,
@@ -45,7 +46,7 @@ func (rep *Repository) InsertInto(th *models.Thread) error {
 	if err := row.Scan(&info); err != nil {
 		return err
 	}
-	_, err := rep.db.Exec(
+	_, err := tx.Exec(
 		"INSERT INTO forum_users (forum, nickname) "+
 			"VALUES ($1,$2) "+
 			"ON CONFLICT (forum,nickname) DO NOTHING ",
@@ -58,8 +59,8 @@ func (rep *Repository) InsertInto(th *models.Thread) error {
 	return nil
 }
 
-func (rep *Repository) GetCreated(th *models.Thread) error {
-	row := rep.db.QueryRow(
+func (rep *Repository) GetCreated(tx *pgx.Tx, th *models.Thread) error {
+	row := tx.QueryRow(
 		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug  "+
 			"FROM thread t "+
 			"JOIN forum f on t.forum = f.slug "+
@@ -91,8 +92,8 @@ func (rep *Repository) GetCreated(th *models.Thread) error {
 	return nil
 }
 
-func (rep *Repository) GetBySlug(th *models.Thread) error {
-	row := rep.db.QueryRow(
+func (rep *Repository) GetBySlug(tx *pgx.Tx, th *models.Thread) error {
+	row := tx.QueryRow(
 		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug  "+
 			"FROM thread t "+
 			"JOIN forum f on t.forum = f.slug "+
@@ -121,11 +122,11 @@ func (rep *Repository) GetBySlug(th *models.Thread) error {
 	return nil
 }
 
-func (rep *Repository) GetBySlugOrId(th *models.Thread) error {
+func (rep *Repository) GetBySlugOrId(tx *pgx.Tx, th *models.Thread) error {
 	slug := sql.NullString{}
 	created := sql.NullTime{}
 	votes := sql.NullInt64{}
-	err := rep.db.QueryRow("SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, SUM(v.vote)::integer "+
+	err := tx.QueryRow("SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, SUM(v.vote)::integer "+
 		"FROM thread t "+
 		"JOIN forum f on t.forum = f.slug "+
 		"LEFT JOIN vote v on t.id = v.thread "+
@@ -148,8 +149,8 @@ func (rep *Repository) GetBySlugOrId(th *models.Thread) error {
 	return nil
 }
 
-func (rep *Repository) InsertIntoVotes(v *models.Vote) error {
-	err := rep.db.QueryRow(
+func (rep *Repository) InsertIntoVotes(tx *pgx.Tx, v *models.Vote) error {
+	err := tx.QueryRow(
 		"INSERT INTO vote (vote, usr, thread) VALUES ($1 , $2, $3) "+
 			"ON CONFLICT (usr,thread) "+
 			"DO UPDATE SET vote = excluded.vote "+
@@ -164,9 +165,9 @@ func (rep *Repository) InsertIntoVotes(v *models.Vote) error {
 	return nil
 }
 
-func (rep *Repository) GetVotes(th *models.Thread, v *models.Vote) error {
+func (rep *Repository) GetVotes(tx *pgx.Tx, th *models.Thread, v *models.Vote) error {
 	votes := sql.NullInt64{}
-	err := rep.db.QueryRow(
+	err := tx.QueryRow(
 		"SELECT SUM(v.vote) from vote v "+
 			"WHERE v.thread = $1",
 		v.Thread,
@@ -180,7 +181,7 @@ func (rep *Repository) GetVotes(th *models.Thread, v *models.Vote) error {
 	return nil
 }
 
-func (rep *Repository) Update(th *models.Thread) error {
+func (rep *Repository) Update(tx *pgx.Tx, th *models.Thread) error {
 	slug := sql.NullString{}
 	created := sql.NullTime{}
 	votes := sql.NullInt64{}
@@ -199,7 +200,7 @@ func (rep *Repository) Update(th *models.Thread) error {
 		sqlStr = fmt.Sprintf(sqlStr, len(args))
 	}
 	if len(args) == 0 {
-		err := rep.db.QueryRow("SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, SUM(v.vote)::integer "+
+		err := tx.QueryRow("SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, SUM(v.vote)::integer "+
 			"FROM thread t "+
 			"JOIN forum f on t.forum = f.slug "+
 			"LEFT JOIN vote v on t.id = v.thread "+
@@ -225,7 +226,7 @@ func (rep *Repository) Update(th *models.Thread) error {
 		sqlStr = fmt.Sprintf(sqlStr, len(args), len(args))
 		var err error
 		if len(args) == 2 {
-			err = rep.db.QueryRow(sqlStr, args[0], args[1]).Scan(
+			err = tx.QueryRow(sqlStr, args[0], args[1]).Scan(
 				&th.Id,
 				&th.Title,
 				&th.Message,
@@ -235,7 +236,7 @@ func (rep *Repository) Update(th *models.Thread) error {
 				&th.Forum,
 			)
 		} else {
-			err = rep.db.QueryRow(sqlStr, args[0], args[1], args[2]).Scan(
+			err = tx.QueryRow(sqlStr, args[0], args[1], args[2]).Scan(
 				&th.Id,
 				&th.Title,
 				&th.Message,
@@ -254,7 +255,7 @@ func (rep *Repository) Update(th *models.Thread) error {
 		if slug.Valid {
 			th.Slug = slug.String
 		}
-		err = rep.db.QueryRow(
+		err = tx.QueryRow(
 			"SELECT SUM(v.vote) from vote v "+
 				"WHERE v.thread = $1",
 			th.Id,
@@ -269,7 +270,7 @@ func (rep *Repository) Update(th *models.Thread) error {
 	return nil
 }
 
-func (rep *Repository) GetPosts(th *models.Thread, desc, sort, limit, since string) ([]models.Post, error) {
+func (rep *Repository) GetPosts(tx *pgx.Tx, th *models.Thread, desc, sort, limit, since string) ([]models.Post, error) {
 	posts := make([]models.Post, 0)
 	var sqlString string
 	if sort == "tree" {
@@ -349,7 +350,7 @@ func (rep *Repository) GetPosts(th *models.Thread, desc, sort, limit, since stri
 			sqlString += "LIMIT " + limit + " "
 		}
 	}
-	rows, err := rep.db.Query(sqlString, th.Id)
+	rows, err := tx.Query(sqlString, th.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -376,4 +377,19 @@ func (rep *Repository) GetPosts(th *models.Thread, desc, sort, limit, since stri
 	}
 	rows.Close()
 	return posts, nil
+}
+
+func (rep *Repository) CreateTx() (*pgx.Tx, error) {
+	tx, err := rep.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
+}
+
+func (rep *Repository) CommitTx(tx *pgx.Tx) error {
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	return nil
 }

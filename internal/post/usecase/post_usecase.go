@@ -28,7 +28,7 @@ func (pUC *PostUsecase) CreatePosts(p []*models.Post, th *models.Thread) error {
 		return err
 	}
 
-	if err := pUC.tRepo.GetBySlugOrId(th); err != nil {
+	if err := pUC.tRepo.GetBySlugOrId(tx, th); err != nil {
 
 		err = pUC.pRepo.CommitTx(tx)
 		if err != nil {
