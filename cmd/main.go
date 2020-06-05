@@ -35,10 +35,17 @@ func main() {
 		User:                 "farcoad",
 		Database:             "forum",
 		Password:             "postgres",
-		PreferSimpleProtocol: true,
+		PreferSimpleProtocol: false,
 	}
 
-	dbConn, err := pgx.Connect(dbConf)
+	dbPoolConf := pgx.ConnPoolConfig{
+		ConnConfig:     dbConf,
+		MaxConnections: 100,
+		AfterConnect:   nil,
+		AcquireTimeout: 0,
+	}
+
+	dbConn, err := pgx.NewConnPool(dbPoolConf)
 	if err != nil {
 		logrus.Fatal(err)
 	}

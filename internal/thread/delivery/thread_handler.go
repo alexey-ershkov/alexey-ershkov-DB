@@ -5,7 +5,6 @@ import (
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/thread"
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/tools"
 	"github.com/labstack/echo/v4"
-	"github.com/sirupsen/logrus"
 	"net/http"
 )
 
@@ -36,13 +35,13 @@ func (thH *ThreadHandler) CreateThread() echo.HandlerFunc {
 		tools.HandleError(err)
 		if err := thH.thUC.CreateThread(th); err != nil {
 			if err == tools.ThreadExist {
-				logrus.Warn("thread already exists")
+				//logrus.Warn("thread already exists")
 				err := c.JSON(http.StatusConflict, th)
 				tools.HandleError(err)
 				return nil
 			}
 			if err == tools.UserNotExist {
-				logrus.Warn("user not exists")
+				//logrus.Warn("user not exists")
 				err = c.JSON(http.StatusNotFound, tools.Message{
 					Message: "user not exist",
 				})

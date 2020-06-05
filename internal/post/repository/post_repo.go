@@ -11,10 +11,10 @@ import (
 )
 
 type PostRepository struct {
-	db *pgx.Conn
+	db *pgx.ConnPool
 }
 
-func NewPostRepository(db *pgx.Conn) post.Repository {
+func NewPostRepository(db *pgx.ConnPool) post.Repository {
 	return &PostRepository{
 		db: db,
 	}

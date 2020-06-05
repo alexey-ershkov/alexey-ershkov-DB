@@ -6,7 +6,6 @@ import (
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/thread"
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/tools"
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/user"
-	"github.com/sirupsen/logrus"
 )
 
 type PostUsecase struct {
@@ -56,7 +55,7 @@ func (pUC *PostUsecase) CreatePosts(p []*models.Post, th *models.Thread) error {
 
 func (pUC *PostUsecase) GetPost(p *models.Post) error {
 	if err := pUC.pRepo.GetById(p); err != nil {
-		logrus.Warn("post not exist")
+		//logrus.Warn("post not exist")
 		return tools.PostNotExist
 	}
 	return nil

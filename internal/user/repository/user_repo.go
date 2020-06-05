@@ -9,7 +9,13 @@ import (
 )
 
 type Repository struct {
-	db *pgx.Conn
+	db *pgx.ConnPool
+}
+
+func NewUserRepo(db *pgx.ConnPool) user.Repository {
+	return &Repository{
+		db: db,
+	}
 }
 
 func (rep *Repository) InsertInto(user *models.User) error {
@@ -158,10 +164,4 @@ func (rep *Repository) GetStatus(s *models.Status) error {
 	}
 	rows.Close()
 	return nil
-}
-
-func NewUserRepo(db *pgx.Conn) user.Repository {
-	return &Repository{
-		db: db,
-	}
 }

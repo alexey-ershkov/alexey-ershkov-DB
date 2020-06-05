@@ -20,7 +20,7 @@ func NewUserUsecase(r user.Repository) user.Usecase {
 func (uc *UserUsecase) CreateUser(u *models.User) ([]models.User, error) {
 	err := uc.Repo.InsertInto(u)
 	if err != nil {
-		logrus.Warn("User already exist")
+		//logrus.Warn("User already exist")
 		users, err := uc.Repo.GetByNicknameOrEmail(u)
 		if err != nil {
 			logrus.Error(err)
