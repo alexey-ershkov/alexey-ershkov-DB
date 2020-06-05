@@ -16,9 +16,12 @@ func NewForumRepository(db *pgx.ConnPool) forum.Repository {
 	return &Repository{db: db}
 }
 
-func (rep *Repository) InsertInto(f *models.Forum) error {
-	row := rep.db.QueryRow(
-		"INSERT INTO forum (slug, title, usr) VALUES ($1, $2, $3) RETURNING title",
+func (rep *Repository) InsertInto(tx *pgx.Tx, f *models.Forum) error {
+	row := tx.QueryRow(
+		"INSERT INTO forum (slug, title, usr) "+
+			"VALUES ($1, $2, $3) "+
+			"ON CONFLICT DO NOTHING "+
+			"RETURNING title",
 		f.Slug,
 		f.Title,
 		f.User,
@@ -31,8 +34,8 @@ func (rep *Repository) InsertInto(f *models.Forum) error {
 	return nil
 }
 
-func (rep *Repository) GetBySlug(f *models.Forum) error {
-	row := rep.db.QueryRow(
+func (rep *Repository) GetBySlug(tx *pgx.Tx, f *models.Forum) error {
+	row := tx.QueryRow(
 		"SELECT count(p), f.slug, (SELECT count(*) FROM forum f2 JOIN thread t2 on f2.slug = t2.forum WHERE f2.slug = $1), f.title, u.nickname FROM forum f "+
 			"LEFT JOIN thread t on f.slug = t.forum "+
 			"LEFT JOIN post p on t.id = p.thread "+
@@ -47,7 +50,7 @@ func (rep *Repository) GetBySlug(f *models.Forum) error {
 	return nil
 }
 
-func (rep *Repository) GetThreads(f *models.Forum, desc, limit, since string) ([]models.Thread, error) {
+func (rep *Repository) GetThreads(tx *pgx.Tx, f *models.Forum, desc, limit, since string) ([]models.Thread, error) {
 	ths := make([]models.Thread, 0)
 	var sqlStr string
 	if desc == "true" {
@@ -71,7 +74,7 @@ func (rep *Repository) GetThreads(f *models.Forum, desc, limit, since string) ([
 			since = "-infinity"
 		}
 	}
-	rows, err := rep.db.Query(sqlStr, f.Slug, since)
+	rows, err := tx.Query(sqlStr, f.Slug, since)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +98,7 @@ func (rep *Repository) GetThreads(f *models.Forum, desc, limit, since string) ([
 	return ths, nil
 }
 
-func (rep *Repository) GetUsers(f *models.Forum, desc, limit, since string) ([]models.User, error) {
+func (rep *Repository) GetUsers(tx *pgx.Tx, f *models.Forum, desc, limit, since string) ([]models.User, error) {
 	usr := make([]models.User, 0)
 
 	sqlQuery := "SELECT u.email, u.fullname, u.nickname, u.about " +
@@ -124,9 +127,9 @@ func (rep *Repository) GetUsers(f *models.Forum, desc, limit, since string) ([]m
 	var rows *pgx.Rows
 	var err error
 	if since != "" {
-		rows, err = rep.db.Query(sqlQuery, f.Slug, since)
+		rows, err = tx.Query(sqlQuery, f.Slug, since)
 	} else {
-		rows, err = rep.db.Query(sqlQuery, f.Slug)
+		rows, err = tx.Query(sqlQuery, f.Slug)
 	}
 
 	if err != nil {
@@ -144,4 +147,19 @@ func (rep *Repository) GetUsers(f *models.Forum, desc, limit, since string) ([]m
 	}
 	rows.Close()
 	return usr, nil
+}
+
+func (rep *Repository) CreateTx() (*pgx.Tx, error) {
+	tx, err := rep.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
+}
+
+func (rep *Repository) CommitTx(tx *pgx.Tx) error {
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	return nil
 }
