@@ -70,6 +70,10 @@ func main() {
 	if err != nil {
 		logrus.Fatal(err)
 	}
+	err = pRep.Prepare()
+	if err != nil {
+		logrus.Fatal(err)
+	}
 
 	uUC := uUcase.NewUserUsecase(uRep)
 	fUC := fUUcase.NewForumUsecase(fRep)

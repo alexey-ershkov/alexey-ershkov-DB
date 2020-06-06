@@ -24,9 +24,7 @@ func (rep *PostRepository) InsertInto(tx *pgx.Tx, p []*models.Post) error {
 		var err error
 		if val.Parent != 0 {
 			err = tx.QueryRow(
-				"INSERT INTO post (usr, message,  parent, thread, forum, path, created) "+
-					"VALUES ($1, $2, $3, $4, $5, $6::BIGINT[], current_timestamp) "+
-					"RETURNING id, created",
+				"posts_insert_into",
 				val.Author,
 				val.Message,
 				val.Parent,
@@ -36,9 +34,7 @@ func (rep *PostRepository) InsertInto(tx *pgx.Tx, p []*models.Post) error {
 			).Scan(&val.Id, &created)
 		} else {
 			err = tx.QueryRow(
-				"INSERT INTO post (usr, message,  parent, thread, forum, created) "+
-					"VALUES ($1, $2, $3, $4, $5, current_timestamp) "+
-					"RETURNING id, created",
+				"post_insert_into_without_parent",
 				val.Author,
 				val.Message,
 				val.Parent,
@@ -53,9 +49,7 @@ func (rep *PostRepository) InsertInto(tx *pgx.Tx, p []*models.Post) error {
 			val.Created = created.Time.Format(time.RFC3339Nano)
 		}
 		_, err = tx.Exec(
-			"INSERT INTO forum_users (forum, nickname) "+
-				"VALUES ($1,$2) "+
-				"ON CONFLICT (forum, nickname) DO NOTHING",
+			"forum_users_insert_into",
 			val.Forum,
 			val.Author,
 		)
@@ -69,9 +63,7 @@ func (rep *PostRepository) InsertInto(tx *pgx.Tx, p []*models.Post) error {
 func (rep *PostRepository) GetById(tx *pgx.Tx, p *models.Post) error {
 	created := sql.NullTime{}
 	err := tx.QueryRow(
-		"SELECT p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread, p.path "+
-			"FROM post p "+
-			"WHERE p.id = $1",
+		"post_get_by_id",
 		p.Id,
 	).Scan(&p.Author, &created, &p.Forum, &p.IsEdited, &p.Message, &p.Parent, &p.Thread, &p.Path)
 	if err != nil {
@@ -85,9 +77,7 @@ func (rep *PostRepository) GetById(tx *pgx.Tx, p *models.Post) error {
 func (rep *PostRepository) Update(tx *pgx.Tx, p *models.Post) error {
 	created := sql.NullTime{}
 	err := tx.QueryRow(
-		"UPDATE post SET message = $1, isEdited = true "+
-			"WHERE id = $2 "+
-			"RETURNING usr, created, forum, isEdited, message, parent, thread",
+		"post_update",
 		p.Message,
 		p.Id,
 	).Scan(&p.Author, &created, &p.Forum, &p.IsEdited, &p.Message, &p.Parent, &p.Thread)
@@ -112,5 +102,45 @@ func (rep *PostRepository) CommitTx(tx *pgx.Tx) error {
 	if err := tx.Commit(); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (rep *PostRepository) Prepare() error {
+	_, err := rep.db.Prepare("posts_insert_into",
+		"INSERT INTO post (usr, message,  parent, thread, forum, path, created) "+
+			"VALUES ($1, $2, $3, $4, $5, $6::BIGINT[], current_timestamp) "+
+			"RETURNING id, created",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("post_insert_into_without_parent",
+		"INSERT INTO post (usr, message,  parent, thread, forum, created) "+
+			"VALUES ($1, $2, $3, $4, $5, current_timestamp) "+
+			"RETURNING id, created",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("post_get_by_id",
+		"SELECT p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread, p.path "+
+			"FROM post p "+
+			"WHERE p.id = $1",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("post_update",
+		"UPDATE post SET message = $1, isEdited = true "+
+			"WHERE id = $2 "+
+			"RETURNING usr, created, forum, isEdited, message, parent, thread",
+	)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

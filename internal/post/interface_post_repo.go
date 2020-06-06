@@ -11,4 +11,5 @@ type Repository interface {
 	Update(tx *pgx.Tx, post *models.Post) error
 	CreateTx() (*pgx.Tx, error)
 	CommitTx(tx *pgx.Tx) error
+	Prepare() error
 }
