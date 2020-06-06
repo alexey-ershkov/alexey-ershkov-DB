@@ -6,9 +6,9 @@ import (
 )
 
 type Repository interface {
-	InsertInto(post []*models.Post) error
-	GetById(post *models.Post) error
-	Update(post *models.Post) error
+	InsertInto(tx *pgx.Tx, post []*models.Post) error
+	GetById(tx *pgx.Tx, post *models.Post) error
+	Update(tx *pgx.Tx, post *models.Post) error
 	CreateTx() (*pgx.Tx, error)
 	CommitTx(tx *pgx.Tx) error
 }

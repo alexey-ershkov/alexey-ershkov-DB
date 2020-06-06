@@ -4,6 +4,7 @@ import (
 	fHandler "alexey-ershkov/alexey-ershkov-DB.git/internal/forum/delivery"
 	fRepo "alexey-ershkov/alexey-ershkov-DB.git/internal/forum/repository"
 	fUUcase "alexey-ershkov/alexey-ershkov-DB.git/internal/forum/usecase"
+	"time"
 
 	thHandler "alexey-ershkov/alexey-ershkov-DB.git/internal/thread/delivery"
 	thRepo "alexey-ershkov/alexey-ershkov-DB.git/internal/thread/repository"
@@ -46,6 +47,9 @@ func main() {
 	}
 
 	dbConn, err := pgx.NewConnPool(dbPoolConf)
+
+	StatsLog(dbConn)
+
 	if err != nil {
 		logrus.Fatal(err)
 	}
@@ -66,4 +70,18 @@ func main() {
 	pHandler.NewPostHandler(server, pUC, fUC, uUC, thUC)
 
 	logrus.Fatal(server.Start(":5000"))
+}
+
+func StatsLog(conn *pgx.ConnPool) {
+	ticker := time.NewTicker(time.Second * 5)
+	go func() {
+		for range ticker.C {
+			stats := conn.Stat()
+			logrus.WithFields(logrus.Fields{
+				"Max Conn":       stats.MaxConnections,
+				"Current Conn":   stats.CurrentConnections,
+				"Avaliable Conn": stats.AvailableConnections,
+			}).Info()
+		}
+	}()
 }

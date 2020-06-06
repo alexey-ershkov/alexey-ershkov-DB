@@ -3,10 +3,8 @@ package repository
 import (
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/models"
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/post"
-	"alexey-ershkov/alexey-ershkov-DB.git/internal/tools"
 	"database/sql"
 	"github.com/jackc/pgx"
-	"github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -20,12 +18,7 @@ func NewPostRepository(db *pgx.ConnPool) post.Repository {
 	}
 }
 
-func (rep *PostRepository) InsertInto(p []*models.Post) error {
-	tx, err := rep.db.Begin()
-	if err != nil {
-		logrus.Error("SQL: cannot start TX")
-		return tools.SqlError
-	}
+func (rep *PostRepository) InsertInto(tx *pgx.Tx, p []*models.Post) error {
 	created := sql.NullTime{}
 	for _, val := range p {
 		var err error
@@ -70,16 +63,12 @@ func (rep *PostRepository) InsertInto(p []*models.Post) error {
 			return err
 		}
 	}
-	if err := tx.Commit(); err != nil {
-		logrus.Error("SQL cannot commit TX")
-		return tools.SqlError
-	}
 	return nil
 }
 
-func (rep *PostRepository) GetById(p *models.Post) error {
+func (rep *PostRepository) GetById(tx *pgx.Tx, p *models.Post) error {
 	created := sql.NullTime{}
-	err := rep.db.QueryRow(
+	err := tx.QueryRow(
 		"SELECT p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread, p.path "+
 			"FROM post p "+
 			"WHERE p.id = $1",
@@ -93,9 +82,9 @@ func (rep *PostRepository) GetById(p *models.Post) error {
 	}
 	return nil
 }
-func (rep *PostRepository) Update(p *models.Post) error {
+func (rep *PostRepository) Update(tx *pgx.Tx, p *models.Post) error {
 	created := sql.NullTime{}
-	err := rep.db.QueryRow(
+	err := tx.QueryRow(
 		"UPDATE post SET message = $1, isEdited = true "+
 			"WHERE id = $2 "+
 			"RETURNING usr, created, forum, isEdited, message, parent, thread",
