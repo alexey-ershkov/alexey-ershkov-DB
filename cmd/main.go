@@ -90,6 +90,12 @@ func main() {
 
 func StatsLog(conn *pgx.ConnPool) {
 	ticker := time.NewTicker(time.Second * 5)
+	stats := conn.Stat()
+	logrus.WithFields(logrus.Fields{
+		"Max Conn":       stats.MaxConnections,
+		"Current Conn":   stats.CurrentConnections,
+		"Avaliable Conn": stats.AvailableConnections,
+	}).Info()
 	go func() {
 		for range ticker.C {
 			stats := conn.Stat()

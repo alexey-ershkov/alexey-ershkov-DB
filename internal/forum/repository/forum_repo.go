@@ -91,7 +91,6 @@ func (rep *Repository) GetThreads(tx *pgx.Tx, f *models.Forum, desc, limit, sinc
 	return ths, nil
 }
 
-//TODO можно переписать на prepared statement
 func (rep *Repository) GetUsers(tx *pgx.Tx, f *models.Forum, desc, limit, since string) ([]models.User, error) {
 	usr := make([]models.User, 0)
 	var rows *pgx.Rows

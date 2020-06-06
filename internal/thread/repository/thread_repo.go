@@ -4,7 +4,6 @@ import (
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/models"
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/thread"
 	"database/sql"
-	"fmt"
 	"github.com/jackc/pgx"
 	"github.com/sirupsen/logrus"
 	"time"
@@ -171,88 +170,96 @@ func (rep *Repository) GetVotes(tx *pgx.Tx, th *models.Thread, v *models.Vote) e
 	return nil
 }
 
-//TODO можно переписать на prepared statement
 func (rep *Repository) Update(tx *pgx.Tx, th *models.Thread) error {
 	slug := sql.NullString{}
 	created := sql.NullTime{}
 	votes := sql.NullInt64{}
-	args := make([]string, 0)
-	sqlStr := "UPDATE thread SET "
-	if th.Message != "" {
-		sqlStr += "message = $1 "
-		args = append(args, th.Message)
-	}
-	if th.Title != "" {
-		if len(args) == 1 {
-			sqlStr += ","
-		}
-		sqlStr += " title = $%d "
-		args = append(args, th.Title)
-		sqlStr = fmt.Sprintf(sqlStr, len(args))
-	}
-	if len(args) == 0 {
-		err := tx.QueryRow("thread_get_by_slug_or_id",
+	var err error
+	switch true {
+	case th.Message == "" && th.Title == "":
+		err = tx.QueryRow("thread_get_by_slug_or_id",
 			th.Slug).Scan(
-			&th.Id, &th.Title, &th.Message, &created, &slug, &th.Author, &th.Forum, &votes,
+			&th.Id,
+			&th.Title,
+			&th.Message,
+			&created,
+			&slug,
+			&th.Author,
+			&th.Forum,
+			&votes,
 		)
-		if err != nil {
-			return err
-		}
-		if created.Valid {
-			th.Created = created.Time.Format(time.RFC3339Nano)
-		}
-		if slug.Valid {
-			th.Slug = slug.String
-		}
-		if votes.Valid {
-			th.Votes = votes.Int64
-		}
-	} else {
-		sqlStr += "WHERE id::citext = $%d or slug = $%d RETURNING id, title, message, created, slug, usr, forum"
-		args = append(args, th.Slug)
-		sqlStr = fmt.Sprintf(sqlStr, len(args), len(args))
-		var err error
-		if len(args) == 2 {
-			err = tx.QueryRow(sqlStr, args[0], args[1]).Scan(
-				&th.Id,
-				&th.Title,
-				&th.Message,
-				&created,
-				&slug,
-				&th.Author,
-				&th.Forum,
-			)
-		} else {
-			err = tx.QueryRow(sqlStr, args[0], args[1], args[2]).Scan(
-				&th.Id,
-				&th.Title,
-				&th.Message,
-				&created,
-				&slug,
-				&th.Author,
-				&th.Forum,
-			)
-		}
-		if err != nil {
-			return err
-		}
-		if created.Valid {
-			th.Created = created.Time.Format(time.RFC3339Nano)
-		}
-		if slug.Valid {
-			th.Slug = slug.String
-		}
-		err = tx.QueryRow(
+	case th.Message != "" && th.Title == "":
+		err = tx.QueryRow("thread_update_message",
+			th.Message,
+			th.Slug).Scan(
+			&th.Id,
+			&th.Title,
+			&th.Message,
+			&created,
+			&slug,
+			&th.Author,
+			&th.Forum,
+		)
+		e := tx.QueryRow(
 			"votes_get",
 			th.Id,
 		).Scan(&votes)
-		if err != nil {
+		if e != nil {
 			logrus.Error("SQL", err)
 		}
-		if votes.Valid {
-			th.Votes = votes.Int64
+	case th.Message == "" && th.Title != "":
+		err = tx.QueryRow("thread_update_title",
+			th.Title,
+			th.Slug).Scan(
+			&th.Id,
+			&th.Title,
+			&th.Message,
+			&created,
+			&slug,
+			&th.Author,
+			&th.Forum,
+		)
+		e := tx.QueryRow(
+			"votes_get",
+			th.Id,
+		).Scan(&votes)
+		if e != nil {
+			logrus.Error("SQL", err)
+		}
+	case th.Message != "" && th.Title != "":
+		err = tx.QueryRow("thread_update_all",
+			th.Message,
+			th.Title,
+			th.Slug).Scan(
+			&th.Id,
+			&th.Title,
+			&th.Message,
+			&created,
+			&slug,
+			&th.Author,
+			&th.Forum,
+		)
+		e := tx.QueryRow(
+			"votes_get",
+			th.Id,
+		).Scan(&votes)
+		if e != nil {
+			logrus.Error("SQL", err)
 		}
 	}
+	if err != nil {
+		return err
+	}
+	if created.Valid {
+		th.Created = created.Time.Format(time.RFC3339Nano)
+	}
+	if slug.Valid {
+		th.Slug = slug.String
+	}
+	if votes.Valid {
+		th.Votes = votes.Int64
+	}
+
 	return nil
 }
 
@@ -380,6 +387,7 @@ func (rep *Repository) CommitTx(tx *pgx.Tx) error {
 	}
 	return nil
 }
+
 func (rep *Repository) Prepare() error {
 	_, err := rep.db.Prepare("thread_insert_into",
 		"INSERT INTO thread (usr, created, forum, message, title, slug) VALUES ($1, $2, $3, $4, $5, $6)"+
@@ -444,6 +452,37 @@ func (rep *Repository) Prepare() error {
 	_, err = rep.db.Prepare("votes_get",
 		"SELECT SUM(v.vote) from vote v "+
 			"WHERE v.thread = $1",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("thread_update_all",
+		"UPDATE thread SET "+
+			"message = $1, "+
+			"title = $2 "+
+			"WHERE id::citext = $3 or slug = $3 "+
+			"RETURNING id, title, message, created, slug, usr, forum",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("thread_update_message",
+		"UPDATE thread SET "+
+			"message = $1 "+
+			"WHERE id::citext = $2 or slug = $2 "+
+			"RETURNING id, title, message, created, slug, usr, forum",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("thread_update_title",
+		"UPDATE thread SET "+
+			"title = $1 "+
+			"WHERE id::citext = $2 or slug = $2 "+
+			"RETURNING id, title, message, created, slug, usr, forum",
 	)
 	if err != nil {
 		return err
