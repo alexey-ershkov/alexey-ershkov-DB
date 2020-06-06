@@ -32,9 +32,7 @@ func (rep *Repository) InsertInto(tx *pgx.Tx, th *models.Thread) error {
 		created.Valid = true
 	}
 	row := tx.QueryRow(
-		"INSERT INTO thread (usr, created, forum, message, title, slug) VALUES ($1, $2, $3, $4, $5, $6)"+
-			"ON CONFLICT DO NOTHING "+
-			"RETURNING id",
+		"thread_insert_into",
 		th.Author,
 		created,
 		th.Forum,
@@ -47,9 +45,7 @@ func (rep *Repository) InsertInto(tx *pgx.Tx, th *models.Thread) error {
 		return err
 	}
 	_, err := tx.Exec(
-		"INSERT INTO forum_users (forum, nickname) "+
-			"VALUES ($1,$2) "+
-			"ON CONFLICT (forum,nickname) DO NOTHING ",
+		"forum_users_insert_into",
 		th.Forum,
 		th.Author,
 	)
@@ -61,10 +57,7 @@ func (rep *Repository) InsertInto(tx *pgx.Tx, th *models.Thread) error {
 
 func (rep *Repository) GetCreated(tx *pgx.Tx, th *models.Thread) error {
 	row := tx.QueryRow(
-		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug  "+
-			"FROM thread t "+
-			"JOIN forum f on t.forum = f.slug "+
-			"WHERE t.usr = $1 AND t.forum = $2 AND t.message = $3 AND t.title = $4",
+		"thread_get_created",
 		th.Author,
 		th.Forum,
 		th.Message,
@@ -94,10 +87,7 @@ func (rep *Repository) GetCreated(tx *pgx.Tx, th *models.Thread) error {
 
 func (rep *Repository) GetBySlug(tx *pgx.Tx, th *models.Thread) error {
 	row := tx.QueryRow(
-		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug  "+
-			"FROM thread t "+
-			"JOIN forum f on t.forum = f.slug "+
-			"WHERE t.slug = $1",
+		"thread_get_by_slug",
 		th.Slug,
 	)
 	created := sql.NullTime{}
@@ -126,13 +116,17 @@ func (rep *Repository) GetBySlugOrId(tx *pgx.Tx, th *models.Thread) error {
 	slug := sql.NullString{}
 	created := sql.NullTime{}
 	votes := sql.NullInt64{}
-	err := tx.QueryRow("SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, SUM(v.vote)::integer "+
-		"FROM thread t "+
-		"JOIN forum f on t.forum = f.slug "+
-		"LEFT JOIN vote v on t.id = v.thread "+
-		"WHERE t.slug = $1 OR t.id::citext = $1 "+
-		"GROUP BY f.slug, t.id", th.Slug).Scan(
-		&th.Id, &th.Title, &th.Message, &created, &slug, &th.Author, &th.Forum, &votes,
+	err := tx.QueryRow(
+		"thread_get_by_slug_or_id",
+		th.Slug).Scan(
+		&th.Id,
+		&th.Title,
+		&th.Message,
+		&created,
+		&slug,
+		&th.Author,
+		&th.Forum,
+		&votes,
 	)
 	if err != nil {
 		return err
@@ -151,10 +145,7 @@ func (rep *Repository) GetBySlugOrId(tx *pgx.Tx, th *models.Thread) error {
 
 func (rep *Repository) InsertIntoVotes(tx *pgx.Tx, v *models.Vote) error {
 	err := tx.QueryRow(
-		"INSERT INTO vote (vote, usr, thread) VALUES ($1 , $2, $3) "+
-			"ON CONFLICT (usr,thread) "+
-			"DO UPDATE SET vote = excluded.vote "+
-			"RETURNING thread",
+		"votes_insert_into",
 		v.Vote,
 		v.Nickname,
 		v.Thread,
@@ -168,8 +159,7 @@ func (rep *Repository) InsertIntoVotes(tx *pgx.Tx, v *models.Vote) error {
 func (rep *Repository) GetVotes(tx *pgx.Tx, th *models.Thread, v *models.Vote) error {
 	votes := sql.NullInt64{}
 	err := tx.QueryRow(
-		"SELECT SUM(v.vote) from vote v "+
-			"WHERE v.thread = $1",
+		"votes_get",
 		v.Thread,
 	).Scan(&votes)
 	if err != nil {
@@ -181,6 +171,7 @@ func (rep *Repository) GetVotes(tx *pgx.Tx, th *models.Thread, v *models.Vote) e
 	return nil
 }
 
+//TODO можно переписать на prepared statement
 func (rep *Repository) Update(tx *pgx.Tx, th *models.Thread) error {
 	slug := sql.NullString{}
 	created := sql.NullTime{}
@@ -200,12 +191,8 @@ func (rep *Repository) Update(tx *pgx.Tx, th *models.Thread) error {
 		sqlStr = fmt.Sprintf(sqlStr, len(args))
 	}
 	if len(args) == 0 {
-		err := tx.QueryRow("SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, SUM(v.vote)::integer "+
-			"FROM thread t "+
-			"JOIN forum f on t.forum = f.slug "+
-			"LEFT JOIN vote v on t.id = v.thread "+
-			"WHERE t.slug = $1 OR t.id::citext = $1 "+
-			"GROUP BY f.slug, t.id", th.Slug).Scan(
+		err := tx.QueryRow("thread_get_by_slug_or_id",
+			th.Slug).Scan(
 			&th.Id, &th.Title, &th.Message, &created, &slug, &th.Author, &th.Forum, &votes,
 		)
 		if err != nil {
@@ -256,8 +243,7 @@ func (rep *Repository) Update(tx *pgx.Tx, th *models.Thread) error {
 			th.Slug = slug.String
 		}
 		err = tx.QueryRow(
-			"SELECT SUM(v.vote) from vote v "+
-				"WHERE v.thread = $1",
+			"votes_get",
 			th.Id,
 		).Scan(&votes)
 		if err != nil {
@@ -270,6 +256,7 @@ func (rep *Repository) Update(tx *pgx.Tx, th *models.Thread) error {
 	return nil
 }
 
+//TODO Можно периписать на prepared statements
 func (rep *Repository) GetPosts(tx *pgx.Tx, th *models.Thread, desc, sort, limit, since string) ([]models.Post, error) {
 	posts := make([]models.Post, 0)
 	var sqlString string
@@ -391,5 +378,76 @@ func (rep *Repository) CommitTx(tx *pgx.Tx) error {
 	if err := tx.Commit(); err != nil {
 		return err
 	}
+	return nil
+}
+func (rep *Repository) Prepare() error {
+	_, err := rep.db.Prepare("thread_insert_into",
+		"INSERT INTO thread (usr, created, forum, message, title, slug) VALUES ($1, $2, $3, $4, $5, $6)"+
+			"ON CONFLICT DO NOTHING "+
+			"RETURNING id",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("forum_users_insert_into",
+		"INSERT INTO forum_users (forum, nickname) "+
+			"VALUES ($1,$2) "+
+			"ON CONFLICT (forum,nickname) DO NOTHING ",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("thread_get_created",
+		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug  "+
+			"FROM thread t "+
+			"JOIN forum f on t.forum = f.slug "+
+			"WHERE t.usr = $1 AND t.forum = $2 AND t.message = $3 AND t.title = $4",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("thread_get_by_slug",
+		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug  "+
+			"FROM thread t "+
+			"JOIN forum f on t.forum = f.slug "+
+			"WHERE t.slug = $1",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("thread_get_by_slug_or_id",
+		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, SUM(v.vote)::integer "+
+			"FROM thread t "+
+			"JOIN forum f on t.forum = f.slug "+
+			"LEFT JOIN vote v on t.id = v.thread "+
+			"WHERE t.slug = $1 OR t.id::citext = $1 "+
+			"GROUP BY f.slug, t.id",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("votes_insert_into",
+		"INSERT INTO vote (vote, usr, thread) VALUES ($1 , $2, $3) "+
+			"ON CONFLICT (usr,thread) "+
+			"DO UPDATE SET vote = excluded.vote "+
+			"RETURNING thread",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("votes_get",
+		"SELECT SUM(v.vote) from vote v "+
+			"WHERE v.thread = $1",
+	)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
