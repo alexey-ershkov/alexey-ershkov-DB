@@ -94,36 +94,26 @@ func (rep *Repository) GetThreads(tx *pgx.Tx, f *models.Forum, desc, limit, sinc
 //TODO можно переписать на prepared statement
 func (rep *Repository) GetUsers(tx *pgx.Tx, f *models.Forum, desc, limit, since string) ([]models.User, error) {
 	usr := make([]models.User, 0)
-
-	sqlQuery := "SELECT u.email, u.fullname, u.nickname, u.about " +
-		"FROM forum_users " +
-		"JOIN usr u on forum_users.nickname = u.nickname " +
-		"WHERE forum = $1 "
-
-	if since != "" {
-		if desc == "true" {
-			sqlQuery += "AND u.nickname < $2 "
-		} else {
-			sqlQuery += "AND u.nickname > $2 "
-		}
-	}
-
-	sqlQuery += "ORDER BY u.nickname "
-
-	if desc == "true" {
-		sqlQuery += "DESC "
-	}
-
-	if limit != "" {
-		sqlQuery += "LIMIT " + limit
-	}
-
 	var rows *pgx.Rows
 	var err error
-	if since != "" {
-		rows, err = tx.Query(sqlQuery, f.Slug, since)
-	} else {
-		rows, err = tx.Query(sqlQuery, f.Slug)
+
+	switch true {
+	case desc != "true" && since == "" && limit == "":
+		rows, err = tx.Query("forum_get_users", f.Slug)
+	case desc == "true" && since == "" && limit == "":
+		rows, err = tx.Query("forum_get_users_desc", f.Slug)
+	case desc != "true" && since != "" && limit == "":
+		rows, err = tx.Query("forum_get_users_asc_with_since", f.Slug, since)
+	case desc == "true" && since != "" && limit == "":
+		rows, err = tx.Query("forum_get_users_desc_with_since", f.Slug, since)
+	case desc != "true" && since == "" && limit != "":
+		rows, err = tx.Query("forum_get_users_with_limit", f.Slug, limit)
+	case desc == "true" && since == "" && limit != "":
+		rows, err = tx.Query("forum_get_users_desc_with_limit", f.Slug, limit)
+	case desc != "true" && since != "" && limit != "":
+		rows, err = tx.Query("forum_get_users_asc_with_since_with_limit", f.Slug, since, limit)
+	case desc == "true" && since != "" && limit != "":
+		rows, err = tx.Query("forum_get_users_desc_with_since_with_limit", f.Slug, since, limit)
 	}
 
 	if err != nil {
@@ -217,6 +207,98 @@ func (rep *Repository) Prepare() error {
 			"WHERE f.slug = $1 AND t.created >=  $2::timestamp AT TIME ZONE '0'"+
 			"ORDER BY t.created "+
 			"LIMIT $3 ",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("forum_get_users",
+		"SELECT u.email, u.fullname, u.nickname, u.about "+
+			"FROM forum_users "+
+			"JOIN usr u on forum_users.nickname = u.nickname "+
+			"WHERE forum = $1 "+
+			"ORDER BY u.nickname ",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("forum_get_users_with_limit",
+		"SELECT u.email, u.fullname, u.nickname, u.about "+
+			"FROM forum_users "+
+			"JOIN usr u on forum_users.nickname = u.nickname "+
+			"WHERE forum = $1 "+
+			"ORDER BY u.nickname "+
+			"LIMIT $2 ",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("forum_get_users_desc",
+		"SELECT u.email, u.fullname, u.nickname, u.about "+
+			"FROM forum_users "+
+			"JOIN usr u on forum_users.nickname = u.nickname "+
+			"WHERE forum = $1 "+
+			"ORDER BY u.nickname DESC ",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("forum_get_users_desc_with_limit",
+		"SELECT u.email, u.fullname, u.nickname, u.about "+
+			"FROM forum_users "+
+			"JOIN usr u on forum_users.nickname = u.nickname "+
+			"WHERE forum = $1 "+
+			"ORDER BY u.nickname DESC "+
+			"LIMIT $2 ",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("forum_get_users_desc_with_since_with_limit",
+		"SELECT u.email, u.fullname, u.nickname, u.about "+
+			"FROM forum_users "+
+			"JOIN usr u on forum_users.nickname = u.nickname "+
+			"WHERE forum = $1 AND u.nickname < $2 "+
+			"ORDER BY u.nickname DESC "+
+			"LIMIT $3 ",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("forum_get_users_desc_with_since",
+		"SELECT u.email, u.fullname, u.nickname, u.about "+
+			"FROM forum_users "+
+			"JOIN usr u on forum_users.nickname = u.nickname "+
+			"WHERE forum = $1 AND u.nickname < $2 "+
+			"ORDER BY u.nickname DESC",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("forum_get_users_asc_with_since_with_limit",
+		"SELECT u.email, u.fullname, u.nickname, u.about "+
+			"FROM forum_users "+
+			"JOIN usr u on forum_users.nickname = u.nickname "+
+			"WHERE forum = $1 AND u.nickname > $2 "+
+			"ORDER BY u.nickname "+
+			"LIMIT $3 ",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("forum_get_users_asc_with_since",
+		"SELECT u.email, u.fullname, u.nickname, u.about "+
+			"FROM forum_users "+
+			"JOIN usr u on forum_users.nickname = u.nickname "+
+			"WHERE forum = $1 AND u.nickname > $2 "+
+			"ORDER BY u.nickname ",
 	)
 	if err != nil {
 		return err
