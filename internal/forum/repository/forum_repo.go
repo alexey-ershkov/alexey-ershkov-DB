@@ -18,10 +18,7 @@ func NewForumRepository(db *pgx.ConnPool) forum.Repository {
 
 func (rep *Repository) InsertInto(tx *pgx.Tx, f *models.Forum) error {
 	row := tx.QueryRow(
-		"INSERT INTO forum (slug, title, usr) "+
-			"VALUES ($1, $2, $3) "+
-			"ON CONFLICT DO NOTHING "+
-			"RETURNING title",
+		"forum_insert_into",
 		f.Slug,
 		f.Title,
 		f.User,
@@ -36,12 +33,7 @@ func (rep *Repository) InsertInto(tx *pgx.Tx, f *models.Forum) error {
 
 func (rep *Repository) GetBySlug(tx *pgx.Tx, f *models.Forum) error {
 	row := tx.QueryRow(
-		"SELECT count(p), f.slug, (SELECT count(*) FROM forum f2 JOIN thread t2 on f2.slug = t2.forum WHERE f2.slug = $1), f.title, u.nickname FROM forum f "+
-			"LEFT JOIN thread t on f.slug = t.forum "+
-			"LEFT JOIN post p on t.id = p.thread "+
-			"JOIN usr u on f.usr = u.nickname "+
-			"WHERE f.slug = $1 "+
-			"GROUP BY f.slug, u.nickname",
+		"forum_get_by_slug",
 		f.Slug,
 	)
 	if err := row.Scan(&f.Posts, &f.Slug, &f.Threads, &f.Title, &f.User); err != nil {
@@ -50,6 +42,7 @@ func (rep *Repository) GetBySlug(tx *pgx.Tx, f *models.Forum) error {
 	return nil
 }
 
+//TODO можно переписать на prepared statement
 func (rep *Repository) GetThreads(tx *pgx.Tx, f *models.Forum, desc, limit, since string) ([]models.Thread, error) {
 	ths := make([]models.Thread, 0)
 	var sqlStr string
@@ -98,6 +91,7 @@ func (rep *Repository) GetThreads(tx *pgx.Tx, f *models.Forum, desc, limit, sinc
 	return ths, nil
 }
 
+//TODO можно переписать на prepared statement
 func (rep *Repository) GetUsers(tx *pgx.Tx, f *models.Forum, desc, limit, since string) ([]models.User, error) {
 	usr := make([]models.User, 0)
 
@@ -161,5 +155,30 @@ func (rep *Repository) CommitTx(tx *pgx.Tx) error {
 	if err := tx.Commit(); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (rep *Repository) Prepare() error {
+	_, err := rep.db.Prepare("forum_insert_into",
+		"INSERT INTO forum (slug, title, usr) "+
+			"VALUES ($1, $2, $3) "+
+			"ON CONFLICT DO NOTHING "+
+			"RETURNING title",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("forum_get_by_slug",
+		"SELECT count(p), f.slug, (SELECT count(*) FROM forum f2 JOIN thread t2 on f2.slug = t2.forum WHERE f2.slug = $1), f.title, u.nickname FROM forum f "+
+			"LEFT JOIN thread t on f.slug = t.forum "+
+			"LEFT JOIN post p on t.id = p.thread "+
+			"JOIN usr u on f.usr = u.nickname "+
+			"WHERE f.slug = $1 "+
+			"GROUP BY f.slug, u.nickname")
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
