@@ -294,35 +294,25 @@ func (rep *Repository) GetPosts(tx *pgx.Tx, th *models.Thread, desc, sort, limit
 		}
 
 	} else if sort == "parent_tree" {
+		switch true {
+		case desc != "true" && since == "" && limit == "":
+			rows, err = tx.Query("thread_posts_parent_asc", th.Id)
+		case desc == "true" && since == "" && limit == "":
+			rows, err = tx.Query("thread_posts_parent_desc", th.Id)
+		case desc != "true" && since != "" && limit == "":
+			rows, err = tx.Query("thread_posts_parent_asc_with_since", th.Id, since)
+		case desc == "true" && since != "" && limit == "":
+			rows, err = tx.Query("thread_posts_parent_desc_with_since", th.Id, since)
+		case desc != "true" && since == "" && limit != "":
+			rows, err = tx.Query("thread_posts_parent_asc_with_limit", th.Id, limit)
+		case desc == "true" && since == "" && limit != "":
+			rows, err = tx.Query("thread_posts_parent_desc_with_limit", th.Id, limit)
+		case desc != "true" && since != "" && limit != "":
+			rows, err = tx.Query("thread_posts_parent_asc_with_since_with_limit", th.Id, since, limit)
+		case desc == "true" && since != "" && limit != "":
+			rows, err = tx.Query("thread_posts_parent_desc_with_since_with_limit", th.Id, since, limit)
+		}
 
-		sqlString = "SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread FROM " +
-			"(" +
-			"   SELECT * FROM post p2 " +
-			"   WHERE p2.thread = $1 AND p2.parent = 0 "
-
-		if since != "" {
-			if desc == "true" {
-				sqlString += "AND p2.path[1] < (SELECT path[1] FROM post WHERE id = " + since + " ) "
-			} else {
-				sqlString += "AND p2.path[1] > (SELECT path[1] FROM post WHERE id = " + since + " ) "
-			}
-		}
-		sqlString += "ORDER BY p2.path "
-		if desc == "true" {
-			sqlString += "DESC "
-		}
-		if limit != "" {
-			sqlString += "LIMIT " + limit + " "
-		}
-		sqlString += ") AS prt " +
-			"JOIN post p ON prt.path[1] = p.path[1] " +
-			"ORDER BY p.path[1] "
-		if desc == "true" {
-			sqlString += "DESC "
-		}
-		sqlString += ", p.path "
-
-		rows, err = tx.Query(sqlString, th.Id)
 		if err != nil {
 			return nil, err
 		}
@@ -576,6 +566,134 @@ func (rep *Repository) Prepare() error {
 			"WHERE p.thread = $1 AND p.path::bigint[] < (SELECT path FROM post WHERE id = $2 )::bigint[] "+
 			"ORDER BY p.path DESC "+
 			"LIMIT $3",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("thread_posts_parent_asc",
+		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread FROM "+
+			"("+
+			"   SELECT * FROM post p2 "+
+			"   WHERE p2.thread = $1 AND p2.parent = 0 "+
+			"	ORDER BY p2.path "+
+			") "+
+			"AS prt "+
+			"JOIN post p ON prt.path[1] = p.path[1] "+
+			"ORDER BY p.path[1] , p.path ",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("thread_posts_parent_desc",
+		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread FROM "+
+			"("+
+			"   SELECT * FROM post p2 "+
+			"   WHERE p2.thread = $1 AND p2.parent = 0 "+
+			"	ORDER BY p2.path DESC "+
+			") "+
+			"AS prt "+
+			"JOIN post p ON prt.path[1] = p.path[1] "+
+			"ORDER BY p.path[1] DESC , p.path ",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("thread_posts_parent_asc_with_limit",
+		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread FROM "+
+			"("+
+			"   SELECT * FROM post p2 "+
+			"   WHERE p2.thread = $1 AND p2.parent = 0 "+
+			"	ORDER BY p2.path "+
+			"	LIMIT $2"+
+			") "+
+			"AS prt "+
+			"JOIN post p ON prt.path[1] = p.path[1] "+
+			"ORDER BY p.path[1] , p.path ",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("thread_posts_parent_desc_with_limit",
+		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread FROM "+
+			"("+
+			"   SELECT * FROM post p2 "+
+			"   WHERE p2.thread = $1 AND p2.parent = 0 "+
+			"	ORDER BY p2.path DESC "+
+			"	LIMIT $2"+
+			") "+
+			"AS prt "+
+			"JOIN post p ON prt.path[1] = p.path[1] "+
+			"ORDER BY p.path[1] DESC , p.path ",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("thread_posts_parent_asc_with_since",
+		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread FROM "+
+			"("+
+			"   SELECT * FROM post p2 "+
+			"   WHERE p2.thread = $1 AND p2.parent = 0 "+
+			"	AND p2.path[1] > (SELECT path[1] FROM post WHERE id = $2 ) "+
+			"	ORDER BY p2.path "+
+			") "+
+			"AS prt "+
+			"JOIN post p ON prt.path[1] = p.path[1] "+
+			"ORDER BY p.path[1] , p.path ",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("thread_posts_parent_desc_with_since",
+		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread FROM "+
+			"("+
+			"   SELECT * FROM post p2 "+
+			"   WHERE p2.thread = $1 AND p2.parent = 0 "+
+			"	AND p2.path[1] < (SELECT path[1] FROM post WHERE id = $2 ) "+
+			"	ORDER BY p2.path DESC "+
+			") "+
+			"AS prt "+
+			"JOIN post p ON prt.path[1] = p.path[1] "+
+			"ORDER BY p.path[1] DESC , p.path ",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("thread_posts_parent_asc_with_since_with_limit",
+		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread FROM "+
+			"("+
+			"   SELECT * FROM post p2 "+
+			"   WHERE p2.thread = $1 AND p2.parent = 0 "+
+			"	AND p2.path[1] > (SELECT path[1] FROM post WHERE id = $2 ) "+
+			"	ORDER BY p2.path "+
+			"	LIMIT $3"+
+			") "+
+			"AS prt "+
+			"JOIN post p ON prt.path[1] = p.path[1] "+
+			"ORDER BY p.path[1] , p.path ",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("thread_posts_parent_desc_with_since_with_limit",
+		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread FROM "+
+			"("+
+			"   SELECT * FROM post p2 "+
+			"   WHERE p2.thread = $1 AND p2.parent = 0 "+
+			"	AND p2.path[1] < (SELECT path[1] FROM post WHERE id = $2 ) "+
+			"	ORDER BY p2.path DESC "+
+			"	LIMIT $3"+
+			") "+
+			"AS prt "+
+			"JOIN post p ON prt.path[1] = p.path[1] "+
+			"ORDER BY p.path[1] DESC , p.path ",
 	)
 	if err != nil {
 		return err
