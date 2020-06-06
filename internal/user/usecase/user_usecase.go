@@ -72,14 +72,14 @@ func (uc *UserUsecase) UpdateUser(u *models.User) error {
 	if u.Email == "" {
 		u.Email = uInfo.Email
 	}
-	if err := uc.Repo.Update(tx, u); err != nil {
-		return tools.UserNotUpdated
-	}
 	if u.About == "" {
 		u.About = uInfo.About
 	}
 	if u.Fullname == "" {
 		u.Fullname = uInfo.Fullname
+	}
+	if err := uc.Repo.Update(tx, u); err != nil {
+		return tools.UserNotUpdated
 	}
 
 	err = uc.Repo.CommitTx(tx)

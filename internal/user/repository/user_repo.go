@@ -4,7 +4,6 @@ import (
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/models"
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/user"
 	"database/sql"
-	"fmt"
 	"github.com/jackc/pgx"
 )
 
@@ -87,32 +86,12 @@ func (rep *Repository) GetByNicknameOrEmail(tx *pgx.Tx, user *models.User) ([]mo
 
 //TODO Можно оптимизировать под prepared statement
 func (rep *Repository) Update(tx *pgx.Tx, user *models.User) error {
-	var info string
-	sqlStr := "UPDATE usr SET " +
-		"email = $1, " +
-		"nickname = $2"
-	args := make([]string, 0)
-	args = append(args, user.Email, user.Nickname)
-	if user.Fullname != "" {
-		sqlStr += ", fullname = $%d "
-		args = append(args, user.Fullname)
-		sqlStr = fmt.Sprintf(sqlStr, len(args))
-	}
-	if user.About != "" {
-		sqlStr += ", about = $%d "
-		args = append(args, user.About)
-		sqlStr = fmt.Sprintf(sqlStr, len(args))
-	}
-	sqlStr += "WHERE nickname = $2 RETURNING email"
-	var err error
-	switch len(args) {
-	case 2:
-		err = tx.QueryRow(sqlStr, args[0], args[1]).Scan(&info)
-	case 3:
-		err = tx.QueryRow(sqlStr, args[0], args[1], args[2]).Scan(&info)
-	case 4:
-		err = tx.QueryRow(sqlStr, args[0], args[1], args[2], args[3]).Scan(&info)
-	}
+	_, err := tx.Exec("user_update",
+		user.Email,
+		user.Nickname,
+		user.Fullname,
+		user.About,
+	)
 	if err != nil {
 		return err
 	}
@@ -206,6 +185,18 @@ func (rep *Repository) Prepare() error {
 		"SELECT u.email, u.fullname, u.nickname, u.about "+
 			"FROM usr u "+
 			"WHERE nickname = $1 OR email = $2",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("user_update",
+		"UPDATE usr SET "+
+			"email = $1, "+
+			"nickname = $2, "+
+			"fullname = $3, "+
+			"about = $4 "+
+			"WHERE nickname = $2 RETURNING email",
 	)
 	if err != nil {
 		return err
