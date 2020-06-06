@@ -42,24 +42,11 @@ func (rep *Repository) GetBySlug(tx *pgx.Tx, f *models.Forum) error {
 	return nil
 }
 
-//TODO можно переписать на prepared statement
 func (rep *Repository) GetThreads(tx *pgx.Tx, f *models.Forum, desc, limit, since string) ([]models.Thread, error) {
 	ths := make([]models.Thread, 0)
-	var sqlStr string
-	if desc == "true" {
-		sqlStr = "SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug FROM thread t " +
-			"JOIN forum f on t.forum = f.slug " +
-			"WHERE f.slug = $1 AND t.created <=  $2::timestamp AT TIME ZONE '0'" +
-			"ORDER BY t.created DESC "
-	} else {
-		sqlStr = "SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug FROM thread t " +
-			"JOIN forum f on t.forum = f.slug " +
-			"WHERE f.slug = $1 AND t.created >=  $2::timestamp AT TIME ZONE '0'" +
-			"ORDER BY t.created "
-	}
-	if limit != "" {
-		sqlStr += "LIMIT " + limit
-	}
+	var rows *pgx.Rows
+	var err error
+
 	if since == "" {
 		if desc == "true" {
 			since = "infinity"
@@ -67,7 +54,20 @@ func (rep *Repository) GetThreads(tx *pgx.Tx, f *models.Forum, desc, limit, sinc
 			since = "-infinity"
 		}
 	}
-	rows, err := tx.Query(sqlStr, f.Slug, since)
+	if desc == "true" {
+		if limit != "" {
+			rows, err = tx.Query("forum_get_threads_desc_with_limit", f.Slug, since, limit)
+		} else {
+			rows, err = tx.Query("forum_get_threads_desc", f.Slug, since)
+		}
+	} else {
+		if limit != "" {
+			rows, err = tx.Query("forum_get_threads_asc_with_limit", f.Slug, since, limit)
+		} else {
+			rows, err = tx.Query("forum_get_threads_asc", f.Slug, since)
+		}
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -176,6 +176,48 @@ func (rep *Repository) Prepare() error {
 			"JOIN usr u on f.usr = u.nickname "+
 			"WHERE f.slug = $1 "+
 			"GROUP BY f.slug, u.nickname")
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("forum_get_threads_desc",
+		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug FROM thread t "+
+			"JOIN forum f on t.forum = f.slug "+
+			"WHERE f.slug = $1 AND t.created <=  $2::timestamp AT TIME ZONE '0'"+
+			"ORDER BY t.created DESC ",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("forum_get_threads_desc_with_limit",
+		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug FROM thread t "+
+			"JOIN forum f on t.forum = f.slug "+
+			"WHERE f.slug = $1 AND t.created <=  $2::timestamp AT TIME ZONE '0'"+
+			"ORDER BY t.created DESC "+
+			"LIMIT $3 ",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("forum_get_threads_asc",
+		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug FROM thread t "+
+			"JOIN forum f on t.forum = f.slug "+
+			"WHERE f.slug = $1 AND t.created >=  $2::timestamp AT TIME ZONE '0'"+
+			"ORDER BY t.created ",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("forum_get_threads_asc_with_limit",
+		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug FROM thread t "+
+			"JOIN forum f on t.forum = f.slug "+
+			"WHERE f.slug = $1 AND t.created >=  $2::timestamp AT TIME ZONE '0'"+
+			"ORDER BY t.created "+
+			"LIMIT $3 ",
+	)
 	if err != nil {
 		return err
 	}

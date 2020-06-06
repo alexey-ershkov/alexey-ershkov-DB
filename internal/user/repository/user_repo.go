@@ -84,7 +84,6 @@ func (rep *Repository) GetByNicknameOrEmail(tx *pgx.Tx, user *models.User) ([]mo
 	return users, nil
 }
 
-//TODO Можно оптимизировать под prepared statement
 func (rep *Repository) Update(tx *pgx.Tx, user *models.User) error {
 	_, err := tx.Exec("user_update",
 		user.Email,
