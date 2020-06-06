@@ -14,4 +14,5 @@ type Repository interface {
 	GetStatus(tx *pgx.Tx, status *models.Status) error
 	CreateTx() (*pgx.Tx, error)
 	CommitTx(tx *pgx.Tx) error
+	Prepare() error
 }

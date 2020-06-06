@@ -36,7 +36,7 @@ func main() {
 		User:                 "farcoad",
 		Database:             "forum",
 		Password:             "postgres",
-		PreferSimpleProtocol: true,
+		PreferSimpleProtocol: false,
 	}
 
 	dbPoolConf := pgx.ConnPoolConfig{
@@ -47,17 +47,21 @@ func main() {
 	}
 
 	dbConn, err := pgx.NewConnPool(dbPoolConf)
-
-	StatsLog(dbConn)
-
 	if err != nil {
 		logrus.Fatal(err)
 	}
+
+	StatsLog(dbConn)
 
 	uRep := uRepo.NewUserRepo(dbConn)
 	fRep := fRepo.NewForumRepository(dbConn)
 	thRep := thRepo.NewThreadRepository(dbConn)
 	pRep := pRepo.NewPostRepository(dbConn)
+
+	err = uRep.Prepare()
+	if err != nil {
+		logrus.Fatal(err)
+	}
 
 	uUC := uUcase.NewUserUsecase(uRep)
 	fUC := fUUcase.NewForumUsecase(fRep)

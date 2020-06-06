@@ -26,10 +26,7 @@ func (rep *Repository) InsertInto(tx *pgx.Tx, user *models.User) error {
 		about.Valid = true
 	}
 	err := tx.QueryRow(
-		"INSERT INTO usr (email, fullname, nickname, about) "+
-			"VALUES ($1, $2, $3, $4) "+
-			"ON CONFLICT DO NOTHING "+
-			"RETURNING email",
+		"user_insert",
 		user.Email,
 		user.Fullname,
 		user.Nickname,
@@ -43,7 +40,7 @@ func (rep *Repository) InsertInto(tx *pgx.Tx, user *models.User) error {
 
 func (rep *Repository) GetByNickname(tx *pgx.Tx, user *models.User) error {
 	row := tx.QueryRow(
-		`SELECT u.email, u.fullname, u.nickname, u.about FROM usr u WHERE nickname = $1`,
+		"user_get_by_nickname",
 		user.Nickname,
 	)
 	fullname := &sql.NullString{}
@@ -62,7 +59,7 @@ func (rep *Repository) GetByNickname(tx *pgx.Tx, user *models.User) error {
 
 func (rep *Repository) GetByNicknameOrEmail(tx *pgx.Tx, user *models.User) ([]models.User, error) {
 	rows, err := tx.Query(
-		"SELECT u.email, u.fullname, u.nickname, u.about FROM usr u WHERE nickname = $1 OR email = $2",
+		"user_get_by_nickname_or_email",
 		user.Nickname,
 		user.Email,
 	)
@@ -88,6 +85,7 @@ func (rep *Repository) GetByNicknameOrEmail(tx *pgx.Tx, user *models.User) ([]mo
 	return users, nil
 }
 
+//TODO Можно оптимизировать под prepared statement
 func (rep *Repository) Update(tx *pgx.Tx, user *models.User) error {
 	var info string
 	sqlStr := "UPDATE usr SET " +
@@ -180,5 +178,38 @@ func (rep *Repository) CommitTx(tx *pgx.Tx) error {
 	if err := tx.Commit(); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (rep *Repository) Prepare() error {
+
+	_, err := rep.db.Prepare("user_insert",
+		"INSERT INTO usr (email, fullname, nickname, about) "+
+			"VALUES ($1, $2, $3, $4) "+
+			"ON CONFLICT DO NOTHING "+
+			"RETURNING email",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("user_get_by_nickname",
+		"SELECT u.email, u.fullname, u.nickname, u.about "+
+			"FROM usr u "+
+			"WHERE nickname = $1 ",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("user_get_by_nickname_or_email",
+		"SELECT u.email, u.fullname, u.nickname, u.about "+
+			"FROM usr u "+
+			"WHERE nickname = $1 OR email = $2",
+	)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
