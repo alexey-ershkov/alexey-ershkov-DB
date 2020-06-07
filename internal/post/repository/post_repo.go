@@ -47,21 +47,32 @@ func (rep *PostRepository) InsertInto(tx *pgx.Tx, p []*models.Post) error {
 			).Scan(&val.Id, &created)
 		}
 		if err != nil {
-			fmt.Println("post_insert_into_without_parent, " + err.Error())
+			//fmt.Println("post_insert_into_without_parent, " + err.Error())
+			//if err.Error() == "ERROR: deadlock detected (SQLSTATE 40P01)" {
+			//	for err != nil {
+			//		fmt.Println("trying again " + err.Error())
+			//		err = rep.db.QueryRow(
+			//			"post_insert_into_without_parent",
+			//			val.Author,
+			//			val.Message,
+			//			val.Parent,
+			//			val.Thread,
+			//			val.Forum,
+			//		).Scan(&val.Id, &created)
+			//	}
+			//	return nil
+			//}
 			return err
 		}
 		if created.Valid {
 			val.Created = created.Time.Format(time.RFC3339Nano)
 		}
-		_, err = tx.Exec(
-			"forum_users_insert_into",
-			val.Forum,
-			val.Author,
-		)
-		if err != nil {
-			fmt.Println("forum_users_insert_into, " + err.Error())
-			return err
-		}
+		//_, err = tx.Exec(
+		//	"forum_users_insert_into",
+		//	val.Forum,
+		//	val.Author,
+		//)
+
 	}
 	return nil
 }

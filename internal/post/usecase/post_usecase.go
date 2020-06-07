@@ -6,7 +6,6 @@ import (
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/thread"
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/tools"
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/user"
-	"fmt"
 )
 
 type PostUsecase struct {
@@ -58,7 +57,6 @@ func (pUC *PostUsecase) CreatePosts(p []*models.Post, th *models.Thread) error {
 		}
 	}
 	if err = pUC.pRepo.InsertInto(tx, p); err != nil {
-		fmt.Println(err)
 		return tools.UserNotExist
 	}
 

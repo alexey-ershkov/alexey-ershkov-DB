@@ -43,14 +43,14 @@ func (rep *Repository) InsertInto(tx *pgx.Tx, th *models.Thread) error {
 	if err := row.Scan(&info); err != nil {
 		return err
 	}
-	_, err := tx.Exec(
-		"forum_users_insert_into",
-		th.Forum,
-		th.Author,
-	)
-	if err != nil {
-		return err
-	}
+	//_, err := tx.Exec(
+	//	"forum_users_insert_into",
+	//	th.Forum,
+	//	th.Author,
+	//)
+	//if err != nil {
+	//	return err
+	//}
 	return nil
 }
 

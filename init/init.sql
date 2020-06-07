@@ -161,4 +161,27 @@ create trigger path_updater
     for each row
 EXECUTE procedure updater();
 
+create or replace function insert_into_forum_users()
+    returns trigger as
+$BODY$
+    begin
+        if (new.forum is not null and new.usr is not null ) then
+            insert into forum_users values (new.forum, new.usr)
+            on conflict (forum, nickname) do nothing ;
+        end if;
+        return new;
+    end;
+$BODY$ LANGUAGE plpgsql;
+
+create trigger forum_user_insert_after_post
+    before insert
+    on post
+    for each row
+EXECUTE procedure insert_into_forum_users();
+
+create trigger forum_user_insert_after_thread
+    before insert
+    on thread
+    for each row
+EXECUTE procedure insert_into_forum_users();
 
