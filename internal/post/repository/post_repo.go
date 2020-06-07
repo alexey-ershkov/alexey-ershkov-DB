@@ -4,6 +4,7 @@ import (
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/models"
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/post"
 	"database/sql"
+	"fmt"
 	"github.com/jackc/pgx"
 	"time"
 )
@@ -32,6 +33,9 @@ func (rep *PostRepository) InsertInto(tx *pgx.Tx, p []*models.Post) error {
 				val.Forum,
 				val.Path,
 			).Scan(&val.Id, &created)
+			if err != nil {
+				fmt.Println("posts_insert_into, " + err.Error())
+			}
 		} else {
 			err = tx.QueryRow(
 				"post_insert_into_without_parent",
@@ -43,6 +47,7 @@ func (rep *PostRepository) InsertInto(tx *pgx.Tx, p []*models.Post) error {
 			).Scan(&val.Id, &created)
 		}
 		if err != nil {
+			fmt.Println("post_insert_into_without_parent, " + err.Error())
 			return err
 		}
 		if created.Valid {
@@ -54,6 +59,7 @@ func (rep *PostRepository) InsertInto(tx *pgx.Tx, p []*models.Post) error {
 			val.Author,
 		)
 		if err != nil {
+			fmt.Println("forum_users_insert_into, " + err.Error())
 			return err
 		}
 	}

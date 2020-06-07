@@ -7,6 +7,7 @@ import (
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/thread"
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/tools"
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/user"
+	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
 	"net/http"
@@ -72,6 +73,8 @@ func (ph *PostHandler) CreatePosts() echo.HandlerFunc {
 			e := c.JSON(http.StatusInternalServerError, tools.Message{
 				Message: err.Error(),
 			})
+			fmt.Println(e)
+			fmt.Println(err)
 			tools.HandleError(e)
 			return nil
 		}

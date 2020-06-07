@@ -4,6 +4,7 @@ import (
 	fHandler "alexey-ershkov/alexey-ershkov-DB.git/internal/forum/delivery"
 	fRepo "alexey-ershkov/alexey-ershkov-DB.git/internal/forum/repository"
 	fUUcase "alexey-ershkov/alexey-ershkov-DB.git/internal/forum/usecase"
+	"net/http"
 	"time"
 
 	thHandler "alexey-ershkov/alexey-ershkov-DB.git/internal/thread/delivery"
@@ -29,8 +30,26 @@ func init() {
 	logrus.SetLevel(logrus.DebugLevel)
 }
 
+func PanicMiddleWare(next echo.HandlerFunc) echo.HandlerFunc {
+
+	return func(c echo.Context) error {
+		defer func() error {
+			if err := recover(); err != nil {
+				logrus.WithFields(logrus.Fields{
+					"ERROR": err.(error).Error(),
+				}).Error()
+				return c.NoContent(http.StatusInternalServerError)
+			}
+			return nil
+		}()
+
+		return next(c)
+	}
+}
+
 func main() {
 	server := echo.New()
+	server.Use(PanicMiddleWare)
 
 	dbConf := pgx.ConnConfig{
 		User:                 "farcoad",
@@ -51,7 +70,7 @@ func main() {
 		logrus.Fatal(err)
 	}
 
-	StatsLog(dbConn)
+	//StatsLog(dbConn)
 
 	uRep := uRepo.NewUserRepo(dbConn)
 	fRep := fRepo.NewForumRepository(dbConn)

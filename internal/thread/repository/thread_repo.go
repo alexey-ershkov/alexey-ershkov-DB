@@ -414,7 +414,7 @@ func (rep *Repository) Prepare() error {
 			"FROM thread t "+
 			"JOIN forum f on t.forum = f.slug "+
 			"LEFT JOIN vote v on t.id = v.thread "+
-			"WHERE t.slug = $1 OR t.id::citext = $1 "+
+			"WHERE t.id::citext = $1 OR t.slug  = $1 "+
 			"GROUP BY f.slug, t.id",
 	)
 	if err != nil {

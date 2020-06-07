@@ -6,6 +6,7 @@ import (
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/thread"
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/tools"
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/user"
+	"fmt"
 )
 
 type PostUsecase struct {
@@ -24,17 +25,18 @@ func NewPostUsecase(pr post.Repository, tr thread.Repository, ur user.Repository
 
 func (pUC *PostUsecase) CreatePosts(p []*models.Post, th *models.Thread) error {
 	tx, err := pUC.pRepo.CreateTx()
+	defer func() {
+		if err == nil {
+			_ = tx.Commit()
+		} else {
+			_ = tx.Rollback()
+		}
+	}()
 	if err != nil {
 		return err
 	}
 
-	if err := pUC.tRepo.GetBySlugOrId(tx, th); err != nil {
-
-		err = pUC.pRepo.CommitTx(tx)
-		if err != nil {
-			return err
-		}
-
+	if err = pUC.tRepo.GetBySlugOrId(tx, th); err != nil {
 		return tools.ThreadNotExist
 	}
 	for _, val := range p {
@@ -42,47 +44,22 @@ func (pUC *PostUsecase) CreatePosts(p []*models.Post, th *models.Thread) error {
 		val.Forum = th.Forum
 		u := &models.User{}
 		u.Nickname = val.Author
-		if err := pUC.uRepo.GetByNickname(tx, u); err != nil {
-			return tools.UserNotExist
-		}
 		val.Author = u.Nickname
 		if val.Parent != 0 {
 			sp := &models.Post{}
 			sp.Id = val.Parent
-			if err := pUC.pRepo.GetById(tx, sp); err != nil {
-
-				err = pUC.pRepo.CommitTx(tx)
-				if err != nil {
-					return err
-				}
-
+			if err = pUC.pRepo.GetById(tx, sp); err != nil {
 				return tools.ParentNotExist
 			}
 			if sp.Thread != val.Thread {
-
-				err = pUC.pRepo.CommitTx(tx)
-				if err != nil {
-					return err
-				}
-
 				return tools.ParentNotExist
 			}
 			val.Path = sp.Path
 		}
 	}
-	if err := pUC.pRepo.InsertInto(tx, p); err != nil {
-
-		err = pUC.pRepo.CommitTx(tx)
-		if err != nil {
-			return err
-		}
-
-		return err
-	}
-
-	err = pUC.pRepo.CommitTx(tx)
-	if err != nil {
-		return err
+	if err = pUC.pRepo.InsertInto(tx, p); err != nil {
+		fmt.Println(err)
+		return tools.UserNotExist
 	}
 
 	return nil
