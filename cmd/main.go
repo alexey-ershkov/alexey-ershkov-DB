@@ -70,7 +70,7 @@ func main() {
 		logrus.Fatal(err)
 	}
 
-	//StatsLog(dbConn)
+	StatsLog(dbConn)
 
 	uRep := uRepo.NewUserRepo(dbConn)
 	fRep := fRepo.NewForumRepository(dbConn)

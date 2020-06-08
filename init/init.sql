@@ -1,5 +1,10 @@
 drop trigger IF EXISTS path_updater ON post;
+drop trigger if exists forum_users_clear on forum_users;
+drop trigger if exists forum_user_insert_after_thread on thread;
+drop trigger if exists forum_user_insert_after_post on post;
 drop function IF EXISTS updater;
+drop function IF EXISTS clear_forum_users;
+drop function IF EXISTS insert_into_forum_users;
 drop table IF EXISTS usr CASCADE;
 drop table IF EXISTS forum CASCADE;
 drop table IF EXISTS thread CASCADE;
@@ -131,6 +136,7 @@ create index index_vote_thread on vote (thread);
 
 create unlogged table forum_users
 (
+    id bigserial primary key ,
     forum    citext collate "C" not null
         constraint forum_users_forum_slug_fk
             references forum
@@ -138,13 +144,17 @@ create unlogged table forum_users
     nickname citext collate "C" not null
         constraint forum_users_usr_nickname_fk
             references usr (nickname)
-            on update cascade on delete cascade,
-    constraint forum_users_pk
-        unique (forum, nickname)
+            on update cascade on delete cascade
+
 );
+
+create unique index index_forum_nickname on forum_users (forum, nickname);
+create index index_forum_users_all on forum_users (id,forum,nickname);
+
 
 create index index_forum_user on forum_users (forum);
 create index index_forum_user_nickname on forum_users (forum,nickname);
+cluster forum_users using index_forum_user_nickname;
 
 create or replace function updater()
     RETURNS trigger AS
@@ -163,24 +173,25 @@ EXECUTE procedure updater();
 
 create or replace function insert_into_forum_users()
     returns trigger as
-$BODY$
+$insert_into_forum_users$
     begin
-        if (new.forum is not null and new.usr is not null ) then
-            insert into forum_users values (new.forum, new.usr)
-            on conflict (forum, nickname) do nothing ;
-        end if;
+        insert into forum_users (nickname, forum) values (new.usr, new.forum)
+        on conflict do nothing;
         return new;
+    exception
+        when SQLSTATE '40P01' then
+            return new;
     end;
-$BODY$ LANGUAGE plpgsql;
+$insert_into_forum_users$ LANGUAGE plpgsql;
 
 create trigger forum_user_insert_after_post
-    before insert
+    after insert
     on post
     for each row
 EXECUTE procedure insert_into_forum_users();
 
 create trigger forum_user_insert_after_thread
-    before insert
+    after insert
     on thread
     for each row
 EXECUTE procedure insert_into_forum_users();

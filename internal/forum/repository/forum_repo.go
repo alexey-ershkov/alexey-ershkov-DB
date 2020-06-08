@@ -75,12 +75,16 @@ func (rep *Repository) GetThreads(tx *pgx.Tx, f *models.Forum, desc, limit, sinc
 		created := sql.NullTime{}
 		slug := sql.NullString{}
 		th := models.Thread{}
-		err = rows.Scan(&th.Id, &th.Title, &th.Message, &created, &slug, &th.Author, &th.Forum)
+		votes := sql.NullInt64{}
+		err = rows.Scan(&th.Id, &th.Title, &th.Message, &created, &slug, &th.Author, &th.Forum, &votes)
 		if err != nil {
 			return nil, err
 		}
 		if slug.Valid {
 			th.Slug = slug.String
+		}
+		if votes.Valid {
+			th.Votes = votes.Int64
 		}
 		if created.Valid {
 			th.Created = created.Time.Format(time.RFC3339Nano)
@@ -170,9 +174,11 @@ func (rep *Repository) Prepare() error {
 	}
 
 	_, err = rep.db.Prepare("forum_get_threads_desc",
-		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug FROM thread t "+
+		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, SUM(v.vote)::integer FROM thread t "+
 			"JOIN forum f on t.forum = f.slug "+
+			"LEFT JOIN vote v on t.id = v.thread "+
 			"WHERE f.slug = $1 AND t.created <=  $2::timestamp AT TIME ZONE '0'"+
+			"GROUP BY f.slug, t.id "+
 			"ORDER BY t.created DESC ",
 	)
 	if err != nil {
@@ -180,9 +186,11 @@ func (rep *Repository) Prepare() error {
 	}
 
 	_, err = rep.db.Prepare("forum_get_threads_desc_with_limit",
-		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug FROM thread t "+
+		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, SUM(v.vote)::integer FROM thread t "+
 			"JOIN forum f on t.forum = f.slug "+
+			"LEFT JOIN vote v on t.id = v.thread "+
 			"WHERE f.slug = $1 AND t.created <=  $2::timestamp AT TIME ZONE '0'"+
+			"GROUP BY f.slug, t.id "+
 			"ORDER BY t.created DESC "+
 			"LIMIT $3 ",
 	)
@@ -191,9 +199,11 @@ func (rep *Repository) Prepare() error {
 	}
 
 	_, err = rep.db.Prepare("forum_get_threads_asc",
-		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug FROM thread t "+
+		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, SUM(v.vote)::integer FROM thread t "+
 			"JOIN forum f on t.forum = f.slug "+
+			"LEFT JOIN vote v on t.id = v.thread "+
 			"WHERE f.slug = $1 AND t.created >=  $2::timestamp AT TIME ZONE '0'"+
+			"GROUP BY f.slug, t.id "+
 			"ORDER BY t.created ",
 	)
 	if err != nil {
@@ -201,9 +211,11 @@ func (rep *Repository) Prepare() error {
 	}
 
 	_, err = rep.db.Prepare("forum_get_threads_asc_with_limit",
-		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug FROM thread t "+
+		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, SUM(v.vote)::integer FROM thread t "+
 			"JOIN forum f on t.forum = f.slug "+
+			"LEFT JOIN vote v on t.id = v.thread "+
 			"WHERE f.slug = $1 AND t.created >=  $2::timestamp AT TIME ZONE '0'"+
+			"GROUP BY f.slug, t.id "+
 			"ORDER BY t.created "+
 			"LIMIT $3 ",
 	)

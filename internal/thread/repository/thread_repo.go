@@ -107,6 +107,8 @@ func (rep *Repository) GetBySlug(tx *pgx.Tx, th *models.Thread) error {
 	}
 	if slug.Valid {
 		th.Slug = slug.String
+	} else {
+		th.Slug = ""
 	}
 	return nil
 }
@@ -135,6 +137,8 @@ func (rep *Repository) GetBySlugOrId(tx *pgx.Tx, th *models.Thread) error {
 	}
 	if slug.Valid {
 		th.Slug = slug.String
+	} else {
+		th.Slug = ""
 	}
 	if votes.Valid {
 		th.Votes = votes.Int64

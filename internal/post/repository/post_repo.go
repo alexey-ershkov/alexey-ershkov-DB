@@ -4,8 +4,8 @@ import (
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/models"
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/post"
 	"database/sql"
-	"fmt"
 	"github.com/jackc/pgx"
+	"github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -34,7 +34,7 @@ func (rep *PostRepository) InsertInto(tx *pgx.Tx, p []*models.Post) error {
 				val.Path,
 			).Scan(&val.Id, &created)
 			if err != nil {
-				fmt.Println("posts_insert_into, " + err.Error())
+				logrus.Error("posts_insert_into, " + err.Error())
 			}
 		} else {
 			err = tx.QueryRow(
@@ -45,23 +45,11 @@ func (rep *PostRepository) InsertInto(tx *pgx.Tx, p []*models.Post) error {
 				val.Thread,
 				val.Forum,
 			).Scan(&val.Id, &created)
+			if err != nil {
+				logrus.Error("post_insert_into_without_parent, " + err.Error())
+			}
 		}
 		if err != nil {
-			//fmt.Println("post_insert_into_without_parent, " + err.Error())
-			//if err.Error() == "ERROR: deadlock detected (SQLSTATE 40P01)" {
-			//	for err != nil {
-			//		fmt.Println("trying again " + err.Error())
-			//		err = rep.db.QueryRow(
-			//			"post_insert_into_without_parent",
-			//			val.Author,
-			//			val.Message,
-			//			val.Parent,
-			//			val.Thread,
-			//			val.Forum,
-			//		).Scan(&val.Id, &created)
-			//	}
-			//	return nil
-			//}
 			return err
 		}
 		if created.Valid {
