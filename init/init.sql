@@ -103,7 +103,7 @@ create unique index thread_slug_uindex
 
 create unlogged table post
 (
-    id       bigserial             not null
+    id       bigserial
         constraint post_pk
             primary key,
     message  text                  not null,
@@ -128,7 +128,7 @@ create unlogged table post
 create index index_post_thread_path on post (thread, path);
 create index index_post_thread_parent_path on post (thread, parent, path);
 create index index_post_path1_path on post ((path[1]), path);
-cluster post using index_post_path1_path;
+-- cluster post using index_post_path1_path;
 create index index_post_thread_created_id on post (thread, created, id);
 
 create index index_post_usr_fk on post (usr);
@@ -172,11 +172,7 @@ create unlogged table forum_users
 );
 
 create unique index index_forum_nickname on forum_users (forum, nickname);
-
-
-create index index_forum_user on forum_users (forum);
-create index index_forum_user_nickname on forum_users (forum, nickname);
-cluster forum_users using index_forum_user_nickname;
+-- cluster forum_users using index_forum_user_nickname;
 
 create or replace function updater()
     RETURNS trigger AS
