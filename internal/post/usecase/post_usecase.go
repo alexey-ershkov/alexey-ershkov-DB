@@ -41,23 +41,13 @@ func (pUC *PostUsecase) CreatePosts(p []*models.Post, th *models.Thread) error {
 	for _, val := range p {
 		val.Thread = th.Id
 		val.Forum = th.Forum
-		u := &models.User{}
-		u.Nickname = val.Author
-		val.Author = u.Nickname
-		if val.Parent != 0 {
-			sp := &models.Post{}
-			sp.Id = val.Parent
-			if err = pUC.pRepo.GetById(tx, sp); err != nil {
-				return tools.ParentNotExist
-			}
-			if sp.Thread != val.Thread {
-				return tools.ParentNotExist
-			}
-			val.Path = sp.Path
-		}
 	}
 	if err = pUC.pRepo.InsertInto(tx, p); err != nil {
-		return tools.UserNotExist
+		if err.Error() == "ERROR: Parent post was created in another thread (SQLSTATE 00404)" {
+			return tools.ParentNotExist
+		} else {
+			return tools.UserNotExist
+		}
 	}
 
 	return nil

@@ -159,14 +159,32 @@ cluster forum_users using index_forum_user_nickname;
 create or replace function updater()
     RETURNS trigger AS
 $BODY$
-begin
-    update post set path = path || NEW.id WHERE thread = NEW.thread AND id = NEW.id;
+-- begin
+--     update post set path = path || NEW.id WHERE thread = NEW.thread AND id = NEW.id;
+--     RETURN NEW;
+DECLARE
+    parent_path         BIGINT[];
+    first_parent_thread INT;
+BEGIN
+    IF (NEW.parent = 0) THEN
+        NEW.path := array_append(NEW.path, NEW.id);
+    ELSE
+        SELECT thread, path
+        FROM post
+        WHERE thread = NEW.thread AND id = NEW.parent
+        INTO first_parent_thread , parent_path;
+        IF NOT FOUND OR first_parent_thread != NEW.thread THEN
+            RAISE EXCEPTION 'Parent post was created in another thread' USING ERRCODE = '00404';
+        END IF;
+
+        NEW.path := parent_path || NEW.id;
+    END IF;
     RETURN NEW;
 END;
 $BODY$ LANGUAGE plpgsql;
 
 create trigger path_updater
-    after insert
+    before insert
     on post
     for each row
 EXECUTE procedure updater();

@@ -23,31 +23,16 @@ func (rep *PostRepository) InsertInto(tx *pgx.Tx, p []*models.Post) error {
 	created := sql.NullTime{}
 	for _, val := range p {
 		var err error
-		if val.Parent != 0 {
-			err = tx.QueryRow(
-				"posts_insert_into",
-				val.Author,
-				val.Message,
-				val.Parent,
-				val.Thread,
-				val.Forum,
-				val.Path,
-			).Scan(&val.Id, &created)
-			if err != nil {
-				logrus.Error("posts_insert_into, " + err.Error())
-			}
-		} else {
-			err = tx.QueryRow(
-				"post_insert_into_without_parent",
-				val.Author,
-				val.Message,
-				val.Parent,
-				val.Thread,
-				val.Forum,
-			).Scan(&val.Id, &created)
-			if err != nil {
-				logrus.Error("post_insert_into_without_parent, " + err.Error())
-			}
+		err = tx.QueryRow(
+			"post_insert_into",
+			val.Author,
+			val.Message,
+			val.Parent,
+			val.Thread,
+			val.Forum,
+		).Scan(&val.Id, &created)
+		if err != nil {
+			logrus.Error("post_insert_into, " + err.Error())
 		}
 		if err != nil {
 			return err
@@ -55,12 +40,6 @@ func (rep *PostRepository) InsertInto(tx *pgx.Tx, p []*models.Post) error {
 		if created.Valid {
 			val.Created = created.Time.Format(time.RFC3339Nano)
 		}
-		//_, err = tx.Exec(
-		//	"forum_users_insert_into",
-		//	val.Forum,
-		//	val.Author,
-		//)
-
 	}
 	return nil
 }
@@ -111,16 +90,16 @@ func (rep *PostRepository) CommitTx(tx *pgx.Tx) error {
 }
 
 func (rep *PostRepository) Prepare() error {
-	_, err := rep.db.Prepare("posts_insert_into",
-		"INSERT INTO post (usr, message,  parent, thread, forum, path, created) "+
-			"VALUES ($1, $2, $3, $4, $5, $6::BIGINT[], current_timestamp) "+
-			"RETURNING id, created",
-	)
-	if err != nil {
-		return err
-	}
+	//_, err := rep.db.Prepare("posts_insert_into",
+	//	"INSERT INTO post (usr, message,  parent, thread, forum, path, created) "+
+	//		"VALUES ($1, $2, $3, $4, $5, $6::BIGINT[], current_timestamp) "+
+	//		"RETURNING id, created",
+	//)
+	//if err != nil {
+	//	return err
+	//}
 
-	_, err = rep.db.Prepare("post_insert_into_without_parent",
+	_, err := rep.db.Prepare("post_insert_into",
 		"INSERT INTO post (usr, message,  parent, thread, forum, created) "+
 			"VALUES ($1, $2, $3, $4, $5, current_timestamp) "+
 			"RETURNING id, created",
