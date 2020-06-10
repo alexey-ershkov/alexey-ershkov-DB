@@ -4,6 +4,7 @@ import (
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/forum"
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/models"
 	"database/sql"
+	"fmt"
 	"github.com/jackc/pgx"
 	"time"
 )
@@ -88,6 +89,12 @@ func (rep *Repository) GetThreads(tx *pgx.Tx, f *models.Forum, desc, limit, sinc
 		}
 		if created.Valid {
 			th.Created = created.Time.Format(time.RFC3339Nano)
+		}
+		if th.Id == 3907 {
+			fmt.Println(3907)
+		}
+		if th.Id == 5165 {
+			fmt.Println(5165)
 		}
 		ths = append(ths, th)
 	}

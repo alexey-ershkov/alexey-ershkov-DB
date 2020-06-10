@@ -32,13 +32,16 @@ func (rep *PostRepository) InsertInto(tx *pgx.Tx, p []*models.Post) error {
 			val.Forum,
 		).Scan(&val.Id, &created)
 		if err != nil {
-			logrus.Error("post_insert_into, " + err.Error())
-		}
-		if err != nil {
 			return err
 		}
 		if created.Valid {
 			val.Created = created.Time.Format(time.RFC3339Nano)
+		}
+	}
+    if len(p) > 0 {
+		_, err := tx.Exec("forum_posts_update", len(p), p[0].Forum)
+		if err != nil {
+			logrus.Error("Error while update post count: " + err.Error())
 		}
 	}
 	return nil
@@ -90,15 +93,6 @@ func (rep *PostRepository) CommitTx(tx *pgx.Tx) error {
 }
 
 func (rep *PostRepository) Prepare() error {
-	//_, err := rep.db.Prepare("posts_insert_into",
-	//	"INSERT INTO post (usr, message,  parent, thread, forum, path, created) "+
-	//		"VALUES ($1, $2, $3, $4, $5, $6::BIGINT[], current_timestamp) "+
-	//		"RETURNING id, created",
-	//)
-	//if err != nil {
-	//	return err
-	//}
-
 	_, err := rep.db.Prepare("post_insert_into",
 		"INSERT INTO post (usr, message,  parent, thread, forum, created) "+
 			"VALUES ($1, $2, $3, $4, $5, current_timestamp) "+
@@ -122,6 +116,14 @@ func (rep *PostRepository) Prepare() error {
 			"WHERE id = $2 "+
 			"RETURNING usr, created, forum, isEdited, message, parent, thread",
 	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("forum_posts_update",
+		"UPDATE forum  SET posts = (posts + $1) " +
+			"where slug = $2",
+		)
 	if err != nil {
 		return err
 	}

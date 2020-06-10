@@ -4,10 +4,11 @@ drop trigger if exists forum_user_insert_after_thread on thread;
 drop trigger if exists forum_user_insert_after_post on post;
 drop trigger if exists insert_into_thread_votes on thread;
 drop trigger if exists update_thread_votes on thread;
+drop trigger if exists upd_forum_threads on thread;
 drop function IF EXISTS updater;
-drop function IF EXISTS update_thread_votes;
 drop function IF EXISTS insert_thread_votes;
 drop function IF EXISTS insert_into_forum_users;
+drop function if exists update_forum_threads;
 drop table IF EXISTS usr CASCADE;
 drop table IF EXISTS forum CASCADE;
 drop table IF EXISTS thread CASCADE;
@@ -27,6 +28,8 @@ create unlogged table usr
 );
 
 create index index_usr_nickname on usr (nickname);
+create index index_usr_all on usr (nickname, fullname, email, about);
+cluster usr using index_usr_all;
 
 
 create unique index usr_nickname_uindex
@@ -48,8 +51,9 @@ create unlogged table forum
 
 create index index_forum_slug on forum (slug);
 create index index_forum_slug_hash on forum using hash (slug);
+cluster forum using index_forum_slug_hash;
 create index index_usr_fk on forum (usr);
-
+create index index_forum_all on forum (slug, title, usr, posts, threads);
 
 create unlogged table thread
 (
@@ -71,8 +75,12 @@ create unlogged table thread
             on update cascade on delete cascade
 );
 
+create index index_thread_forum_created on thread (forum, created);
+cluster thread using index_thread_forum_created;
 create index index_thread_id_and_slug on thread (CITEXT(id), slug);
 create index index_thread_id on thread (id);
+create index index_thread_slug on thread (slug);
+create index index_thread_slug_hash on thread using hash (slug);
 create index index_thread_all on thread (usr, forum, message, title);
 create index index_thread_usr_fk on thread (usr);
 create index index_thread_forum_fk on thread (forum);
@@ -108,9 +116,13 @@ create unlogged table post
 create index index_post_thread_path on post (thread, path);
 create index index_post_path on post (path);
 create index index_post_thread_parent_path on post (thread, parent, path);
+create index index_post_thread_id on post (thread, id);
+create index index_post_thread_id_no_parent on post (thread, id) where parent = 0;
 create index index_post_path1_path on post ((path[1]), path);
+cluster post using index_post_path1_path;
 create index index_post_thread_id_created on post (thread, id, created);
 create index index_post_thread_created_id on post (thread, created, id);
+create index index_post_all on post (id, created, message, isedited, parent, usr, thread, forum);
 
 create index index_post_usr_fk on post (usr);
 create index index_post_forum_fk on post (forum);
@@ -135,14 +147,12 @@ create unlogged table vote
         unique (usr, thread)
 );
 
--- потом убрать, когда будет денормализация
-create index index_vote_thread on vote (thread);
 
+create index index_vote_thread on vote (thread);
 
 
 create unlogged table forum_users
 (
-    id       bigserial primary key,
     forum    citext collate "C" not null
         constraint forum_users_forum_slug_fk
             references forum
@@ -263,18 +273,3 @@ create trigger upd_forum_threads
     on thread
     for each row
 execute procedure update_forum_threads();
-
-create or replace function update_forum_posts()
-    returns trigger as
-$update_forum_threads$
-begin
-    update forum set posts = (posts + 1) where slug = new.forum;
-    return new;
-end;
-$update_forum_threads$ language plpgsql;
-
-create trigger upd_forum_threads
-    after insert
-    on post
-    for each row
-execute procedure update_forum_posts();

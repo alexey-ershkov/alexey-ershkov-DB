@@ -54,6 +54,7 @@ func (pUC *PostUsecase) CreatePosts(p []*models.Post, th *models.Thread) error {
 }
 
 func (pUC *PostUsecase) GetPost(p *models.Post) error {
+
 	tx, err := pUC.pRepo.CreateTx()
 	if err != nil {
 		return err
@@ -69,6 +70,7 @@ func (pUC *PostUsecase) GetPost(p *models.Post) error {
 
 		return tools.PostNotExist
 	}
+
 
 	err = pUC.pRepo.CommitTx(tx)
 	if err != nil {
