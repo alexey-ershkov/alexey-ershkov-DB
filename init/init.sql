@@ -88,7 +88,7 @@ create unlogged table thread
 );
 
 create index index_thread_forum_created on thread (forum, created);
-cluster thread using index_thread_forum_created;
+-- cluster thread using index_thread_forum_created;
 create index index_thread_id_and_slug on thread (CITEXT(id), slug);
 create index index_thread_id on thread (id);
 create index index_thread_slug on thread (slug);
@@ -125,15 +125,21 @@ create unlogged table post
     path     bigint[]
 );
 
-create index index_post_thread_path on post (thread, path);
-create index index_post_thread_parent_path on post (thread, parent, path);
-create index index_post_path1_path on post ((path[1]), path);
+-- create index index_post_thread_path on post (thread, path);
+-- create index index_post_thread_parent_path on post (thread, parent, path);
+-- create index index_post_path1_path on post ((path[1]), path);
 -- cluster post using index_post_path1_path;
-create index index_post_thread_created_id on post (thread, created, id);
+-- create index index_post_thread_created_id on post (thread, created, id);
+--
+-- create index index_post_usr_fk on post (usr);
+-- create index index_post_forum_fk on post (forum);
+--test indexes
 
-create index index_post_usr_fk on post (usr);
-create index index_post_forum_fk on post (forum);
-
+CREATE INDEX post_first_parent_thread_index ON post ((post.path[1]), thread);
+CREATE INDEX post_first_parent_id_index ON post ((post.path[1]), id);
+CREATE INDEX post_first_parent_index ON post ((post.path[1]));
+CREATE INDEX post_path_index ON post ((post.path));
+CREATE INDEX post_thread_id_index ON post (thread, id);
 
 
 create unlogged table vote
