@@ -98,12 +98,12 @@ func (rep *Repository) Update(tx *pgx.Tx, user *models.User) error {
 }
 
 func (rep *Repository) DeleteAll() error {
-	//_, err := rep.db.Exec(
-	//	"DELETE FROM usr",
-	//)
-	//if err != nil {
-	//	return err
-	//}
+	_, err := rep.db.Exec(
+		"DELETE FROM usr",
+	)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
