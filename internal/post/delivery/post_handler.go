@@ -86,9 +86,9 @@ func (ph *PostHandler) CreatePosts() echo.HandlerFunc {
 
 func (ph *PostHandler) GetPost() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		/*logrus.WithFields(logrus.Fields{
-			"method": c.Request().Method,
-		}).Info(c.Request().URL)*/
+		//logrus.WithFields(logrus.Fields{
+		//	"method": c.Request().Method,
+		//}).Info(c.Request().URL)
 		str := c.QueryParam("related")
 		related := strings.Split(str, ",")
 		p := &models.Post{}

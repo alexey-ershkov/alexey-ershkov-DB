@@ -126,19 +126,14 @@ create unlogged table post
 );
 
 create index index_post_thread_path on post (thread, path);
-create index index_post_path on post (path);
 create index index_post_thread_parent_path on post (thread, parent, path);
-create index index_post_thread_id on post (thread, id);
-create index index_post_thread_id_no_parent on post (thread, id) where parent = 0;
 create index index_post_path1_path on post ((path[1]), path);
 cluster post using index_post_path1_path;
-create index index_post_thread_id_created on post (thread, id, created);
 create index index_post_thread_created_id on post (thread, created, id);
-create index index_post_all on post (id, created, message, isedited, parent, usr, thread, forum);
 
 create index index_post_usr_fk on post (usr);
 create index index_post_forum_fk on post (forum);
-create index index_post_thread_fk on post (thread);
+
 
 
 create unlogged table vote
@@ -177,7 +172,6 @@ create unlogged table forum_users
 );
 
 create unique index index_forum_nickname on forum_users (forum, nickname);
-create index index_forum_users_all on forum_users (id, forum, nickname);
 
 
 create index index_forum_user on forum_users (forum);

@@ -137,9 +137,9 @@ func (thH *ThreadHandler) UpdateThread() echo.HandlerFunc {
 
 func (thH *ThreadHandler) GetThreadPosts() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		/*logrus.WithFields(logrus.Fields{
-			"method": c.Request().Method,
-		}).Info(c.Request().URL)*/
+		//logrus.WithFields(logrus.Fields{
+		//	"method": c.Request().Method,
+		//}).Info(c.Request().URL)
 		th := models.Thread{}
 		th.Slug = c.Param("slug")
 		posts, err := thH.thUC.GetThreadPosts(
