@@ -76,9 +76,9 @@ func (fh *ForumHandler) GetForumInfo() echo.HandlerFunc {
 
 func (fh *ForumHandler) GetForumThreads() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		/*logrus.WithFields(logrus.Fields{
-			"method": c.Request().Method,
-		}).Info(c.Request().URL)*/
+		//logrus.WithFields(logrus.Fields{
+		//	"method": c.Request().Method,
+		//}).Info(c.Request().URL)
 		f := &models.Forum{}
 		f.Slug = c.Param("slug")
 		err := c.Bind(f)
@@ -136,3 +136,9 @@ func (fh *ForumHandler) GetForumUsers() echo.HandlerFunc {
 		return nil
 	}
 }
+
+///api/forum/-O6MJSPR6XCMR/threads?desc=true&limit=16&since=2020-11-11T20%3A13%3A17.178%2B03%3A00  method=GET
+//INFO[0043] /api/forum/iA-Mf848OvjMr/threads?desc=true&limit=19&since=2020-10-07T09%3A22%3A29.561%2B03%3A00  method=GET
+//INFO[0043] /api/forum/0V-MJSP86XJMS/threads?limit=16     method=GET
+//INFO[0043] /api/forum/pmoLC84R6E53s/threads?desc=true&limit=15&since=2019-12-29T01%3A55%3A42.339%2B03%3A00  method=GET
+//INFO[0043] /api/forum/sj63580k6X5Ls/threads?desc=true&limit=15&since=2021-04-18T10%3A06%3A03.148%2B03%3A00  method=GET

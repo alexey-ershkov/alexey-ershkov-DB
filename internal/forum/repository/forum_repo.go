@@ -4,7 +4,6 @@ import (
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/forum"
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/models"
 	"database/sql"
-	"fmt"
 	"github.com/jackc/pgx"
 	"time"
 )
@@ -72,6 +71,7 @@ func (rep *Repository) GetThreads(tx *pgx.Tx, f *models.Forum, desc, limit, sinc
 	if err != nil {
 		return nil, err
 	}
+
 	for rows.Next() {
 		created := sql.NullTime{}
 		slug := sql.NullString{}
@@ -89,12 +89,6 @@ func (rep *Repository) GetThreads(tx *pgx.Tx, f *models.Forum, desc, limit, sinc
 		}
 		if created.Valid {
 			th.Created = created.Time.Format(time.RFC3339Nano)
-		}
-		if th.Id == 3907 {
-			fmt.Println(3907)
-		}
-		if th.Id == 5165 {
-			fmt.Println(5165)
 		}
 		ths = append(ths, th)
 	}
@@ -182,7 +176,7 @@ func (rep *Repository) Prepare() error {
 	_, err = rep.db.Prepare("forum_get_threads_desc",
 		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, t.votes FROM thread t "+
 			"JOIN forum f on t.forum = f.slug "+
-			"WHERE f.slug = $1 AND t.created <=  $2::timestamp AT TIME ZONE '0'"+
+			"WHERE f.slug = $1 AND t.created <=  $2::timestamptz "+
 			"ORDER BY t.created DESC ",
 	)
 	if err != nil {
@@ -192,9 +186,9 @@ func (rep *Repository) Prepare() error {
 	_, err = rep.db.Prepare("forum_get_threads_desc_with_limit",
 		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, t.votes FROM thread t "+
 			"JOIN forum f on t.forum = f.slug "+
-			"WHERE f.slug = $1 AND t.created <=  $2::timestamp AT TIME ZONE '0'"+
+			"WHERE f.slug = $1 AND t.created <=  $2::timestamptz "+
 			"ORDER BY t.created DESC "+
-			"LIMIT $3 ",
+			"LIMIT $3",
 	)
 	if err != nil {
 		return err
@@ -203,7 +197,7 @@ func (rep *Repository) Prepare() error {
 	_, err = rep.db.Prepare("forum_get_threads_asc",
 		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, t.votes FROM thread t "+
 			"JOIN forum f on t.forum = f.slug "+
-			"WHERE f.slug = $1 AND t.created >=  $2::timestamp AT TIME ZONE '0'"+
+			"WHERE f.slug = $1 AND t.created >=  $2::timestamptz "+
 			"ORDER BY t.created ",
 	)
 	if err != nil {
@@ -213,7 +207,7 @@ func (rep *Repository) Prepare() error {
 	_, err = rep.db.Prepare("forum_get_threads_asc_with_limit",
 		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, t.votes FROM thread t "+
 			"JOIN forum f on t.forum = f.slug "+
-			"WHERE f.slug = $1 AND t.created >=  $2::timestamp AT TIME ZONE '0'"+
+			"WHERE f.slug = $1 AND t.created >=  $2::timestamptz "+
 			"ORDER BY t.created "+
 			"LIMIT $3 ",
 	)
