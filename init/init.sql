@@ -2,8 +2,11 @@ drop trigger IF EXISTS path_updater ON post;
 drop trigger if exists forum_users_clear on forum_users;
 drop trigger if exists forum_user_insert_after_thread on thread;
 drop trigger if exists forum_user_insert_after_post on post;
+drop trigger if exists insert_into_thread_votes on thread;
+drop trigger if exists update_thread_votes on thread;
 drop function IF EXISTS updater;
-drop function IF EXISTS clear_forum_users;
+drop function IF EXISTS update_thread_votes;
+drop function IF EXISTS insert_thread_votes;
 drop function IF EXISTS insert_into_forum_users;
 drop table IF EXISTS usr CASCADE;
 drop table IF EXISTS forum CASCADE;
@@ -55,6 +58,7 @@ create unlogged table thread
     message text   not null,
     created timestamp with time zone,
     slug    citext collate "C",
+    votes   int default 0,
     usr     citext collate "C" not null
         constraint thread_user_email_fk
             references usr (nickname)
@@ -211,3 +215,41 @@ create trigger forum_user_insert_after_thread
     for each row
 EXECUTE procedure insert_into_forum_users();
 
+-- create or replace function insert_thread_votes()
+--     returns trigger as
+--     $insert_thread_votes$
+--     begin
+--         update thread set votes = (votes + new.vote) where id = new.thread;
+--         return new;
+--     end;
+--     $insert_thread_votes$ language plpgsql;
+
+create or replace function update_thread_votes()
+    returns trigger as
+    $update_thread_votes$
+    declare
+        prev_vote int;
+    begin
+        select vote from vote
+        where thread = new.thread and usr = new.usr
+        into prev_vote;
+        if not FOUND then
+            update thread set votes = (votes + new.vote) where id = new.thread;
+        else
+            if prev_vote != new.vote then
+                update thread set votes = (votes + 2*new.vote) where id = new.thread;
+            end if;
+        end if;
+        return new;
+    end;
+    $update_thread_votes$ language plpgsql;
+
+-- create trigger insert_into_thread_votes
+--     before insert on vote
+--     for each row
+--     execute procedure insert_thread_votes();
+
+create trigger update_thread_votes
+    before insert on vote
+    for each row
+execute procedure update_thread_votes();

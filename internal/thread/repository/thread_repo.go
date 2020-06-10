@@ -414,12 +414,10 @@ func (rep *Repository) Prepare() error {
 	}
 
 	_, err = rep.db.Prepare("thread_get_by_slug_or_id",
-		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, SUM(v.vote)::integer "+
+		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, t.votes "+
 			"FROM thread t "+
 			"JOIN forum f on t.forum = f.slug "+
-			"LEFT JOIN vote v on t.id = v.thread "+
-			"WHERE t.id::citext = $1 OR t.slug  = $1 "+
-			"GROUP BY f.slug, t.id",
+			"WHERE t.id::citext = $1 OR t.slug  = $1 ",
 	)
 	if err != nil {
 		return err
