@@ -20,7 +20,7 @@ create EXTENSION IF NOT EXISTS CITEXT;
 create unlogged table usr
 (
     email    citext collate "C" not null,
-    fullname text   not null,
+    fullname text               not null,
     nickname citext collate "C" not null,
     about    text,
     constraint user_pk primary key (email)
@@ -34,14 +34,16 @@ create unique index usr_nickname_uindex
 
 create unlogged table forum
 (
-    slug  citext collate "C" not null
+    slug    citext collate "C" not null
         constraint forum_pk
             primary key,
-    title text   not null,
-    usr   citext collate "C" not null
+    title   text               not null,
+    usr     citext collate "C" not null
         constraint forum_user_email_fk
             references usr (nickname)
-            on update cascade on delete cascade
+            on update cascade on delete cascade,
+    threads bigint default 0,
+    posts   bigint default 0
 );
 
 create index index_forum_slug on forum (slug);
@@ -51,11 +53,11 @@ create index index_usr_fk on forum (usr);
 
 create unlogged table thread
 (
-    id      serial not null
+    id      serial             not null
         constraint thread_pk
             primary key,
-    title   text   not null,
-    message text   not null,
+    title   text               not null,
+    message text               not null,
     created timestamp with time zone,
     slug    citext collate "C",
     votes   int default 0,
@@ -69,7 +71,7 @@ create unlogged table thread
             on update cascade on delete cascade
 );
 
-create index index_thread_id_and_slug on thread (CITEXT(id),slug);
+create index index_thread_id_and_slug on thread (CITEXT(id), slug);
 create index index_thread_id on thread (id);
 create index index_thread_all on thread (usr, forum, message, title);
 create index index_thread_usr_fk on thread (usr);
@@ -88,7 +90,7 @@ create unlogged table post
     isedited boolean default false not null,
     parent   integer default 0,
     created  timestamp,
-    usr      citext  collate "C" not null
+    usr      citext collate "C"    not null
         constraint post_usr_nickname_fk
             references usr (nickname)
             on update cascade on delete cascade,
@@ -105,27 +107,27 @@ create unlogged table post
 
 create index index_post_thread_path on post (thread, path);
 create index index_post_path on post (path);
-create index index_post_thread_parent_path on post (thread,parent,path);
+create index index_post_thread_parent_path on post (thread, parent, path);
 create index index_post_path1_path on post ((path[1]), path);
 create index index_post_thread_id_created on post (thread, id, created);
 create index index_post_thread_created_id on post (thread, created, id);
 
 create index index_post_usr_fk on post (usr);
-create index index_post_forum_fk on post(forum);
-create index index_post_thread_fk on post(thread);
+create index index_post_forum_fk on post (forum);
+create index index_post_thread_fk on post (thread);
 
 
 create unlogged table vote
 (
-    id     serial  not null
+    id     serial             not null
         constraint vote_pk
             primary key,
-    vote   integer not null,
+    vote   integer            not null,
     usr    citext collate "C" not null
         constraint vote_usr_nickname_fk
             references usr (nickname)
             on update cascade on delete cascade,
-    thread integer not null
+    thread integer            not null
         constraint vote_thread_id_fk
             references thread
             on update cascade on delete cascade,
@@ -140,7 +142,7 @@ create index index_vote_thread on vote (thread);
 
 create unlogged table forum_users
 (
-    id bigserial primary key ,
+    id       bigserial primary key,
     forum    citext collate "C" not null
         constraint forum_users_forum_slug_fk
             references forum
@@ -153,11 +155,11 @@ create unlogged table forum_users
 );
 
 create unique index index_forum_nickname on forum_users (forum, nickname);
-create index index_forum_users_all on forum_users (id,forum,nickname);
+create index index_forum_users_all on forum_users (id, forum, nickname);
 
 
 create index index_forum_user on forum_users (forum);
-create index index_forum_user_nickname on forum_users (forum,nickname);
+create index index_forum_user_nickname on forum_users (forum, nickname);
 cluster forum_users using index_forum_user_nickname;
 
 create or replace function updater()
@@ -172,7 +174,8 @@ begin
     else
         select thread, path
         from post
-        where thread = NEW.thread and id = NEW.parent
+        where thread = NEW.thread
+          and id = NEW.parent
         into first_parent_thread , parent_path;
         if not FOUND or first_parent_thread != NEW.thread then
             raise exception 'Parent post was created in another thread' using errcode = '00404';
@@ -193,14 +196,15 @@ EXECUTE procedure updater();
 create or replace function insert_into_forum_users()
     returns trigger as
 $insert_into_forum_users$
-    begin
-        insert into forum_users (nickname, forum) values (new.usr, new.forum)
-        on conflict do nothing;
+begin
+    insert into forum_users (nickname, forum)
+    values (new.usr, new.forum)
+    on conflict do nothing;
+    return new;
+exception
+    when SQLSTATE '40P01' then
         return new;
-    exception
-        when SQLSTATE '40P01' then
-            return new;
-    end;
+end;
 $insert_into_forum_users$ LANGUAGE plpgsql;
 
 create trigger forum_user_insert_after_post
@@ -215,41 +219,62 @@ create trigger forum_user_insert_after_thread
     for each row
 EXECUTE procedure insert_into_forum_users();
 
--- create or replace function insert_thread_votes()
---     returns trigger as
---     $insert_thread_votes$
---     begin
---         update thread set votes = (votes + new.vote) where id = new.thread;
---         return new;
---     end;
---     $insert_thread_votes$ language plpgsql;
 
-create or replace function update_thread_votes()
+create or replace function insert_thread_votes()
     returns trigger as
-    $update_thread_votes$
-    declare
-        prev_vote int;
-    begin
-        select vote from vote
-        where thread = new.thread and usr = new.usr
-        into prev_vote;
-        if not FOUND then
-            update thread set votes = (votes + new.vote) where id = new.thread;
-        else
-            if prev_vote != new.vote then
-                update thread set votes = (votes + 2*new.vote) where id = new.thread;
-            end if;
+$update_thread_votes$
+declare
+    prev_vote int;
+begin
+    select vote
+    from vote
+    where thread = new.thread
+      and usr = new.usr
+    into prev_vote;
+    if not FOUND then
+        update thread set votes = (votes + new.vote) where id = new.thread;
+    else
+        if prev_vote != new.vote then
+            update thread set votes = (votes + 2 * new.vote) where id = new.thread;
         end if;
-        return new;
-    end;
-    $update_thread_votes$ language plpgsql;
+    end if;
+    return new;
+end;
+$update_thread_votes$ language plpgsql;
 
--- create trigger insert_into_thread_votes
---     before insert on vote
---     for each row
---     execute procedure insert_thread_votes();
 
 create trigger update_thread_votes
-    before insert on vote
+    before insert
+    on vote
     for each row
-execute procedure update_thread_votes();
+execute procedure insert_thread_votes();
+
+create or replace function update_forum_threads()
+    returns trigger as
+    $update_forum_threads$
+    begin
+        update forum set threads = (threads + 1) where slug = new.forum;
+        return new;
+    end;
+    $update_forum_threads$ language plpgsql;
+
+create trigger upd_forum_threads
+    after insert
+    on thread
+    for each row
+execute procedure update_forum_threads();
+
+create or replace function update_forum_posts()
+    returns trigger as
+$update_forum_threads$
+begin
+    update forum set posts = (posts + 1) where slug = new.forum;
+    return new;
+end;
+$update_forum_threads$ language plpgsql;
+
+create trigger upd_forum_threads
+    after insert
+    on post
+    for each row
+execute procedure update_forum_posts();

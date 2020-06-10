@@ -163,12 +163,11 @@ func (rep *Repository) Prepare() error {
 	}
 
 	_, err = rep.db.Prepare("forum_get_by_slug",
-		"SELECT count(p), f.slug, (SELECT count(*) FROM forum f2 JOIN thread t2 on f2.slug = t2.forum WHERE f2.slug = $1), f.title, u.nickname FROM forum f "+
-			"LEFT JOIN thread t on f.slug = t.forum "+
-			"LEFT JOIN post p on t.id = p.thread "+
+		"SELECT f.posts, f.slug, f.threads,f.title, u.nickname "+
+			"FROM forum f "+
 			"JOIN usr u on f.usr = u.nickname "+
-			"WHERE f.slug = $1 "+
-			"GROUP BY f.slug, u.nickname")
+			"WHERE f.slug = $1 ",
+	)
 	if err != nil {
 		return err
 	}
