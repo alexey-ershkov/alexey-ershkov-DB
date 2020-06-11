@@ -6,7 +6,7 @@ import (
 )
 
 type Repository interface {
-	InsertInto(tx *pgx.Tx, post []*models.Post) error
+	InsertInto(tx *pgx.Tx, post []*models.Post, thread *models.Thread) error
 	GetById(tx *pgx.Tx, post *models.Post) error
 	Update(tx *pgx.Tx, post *models.Post) error
 	CreateTx() (*pgx.Tx, error)

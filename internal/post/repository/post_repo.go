@@ -19,23 +19,25 @@ func NewPostRepository(db *pgx.ConnPool) post.Repository {
 	}
 }
 
-func (rep *PostRepository) InsertInto(tx *pgx.Tx, p []*models.Post) error {
+func (rep *PostRepository) InsertInto(tx *pgx.Tx, p []*models.Post, th *models.Thread) error {
 	created := sql.NullTime{}
-	for _, val := range p {
+	for iter := range p {
+		p[iter].Thread = th.Id
+		p[iter].Forum = th.Forum
 		var err error
 		err = tx.QueryRow(
 			"post_insert_into",
-			val.Author,
-			val.Message,
-			val.Parent,
-			val.Thread,
-			val.Forum,
-		).Scan(&val.Id, &created)
+			p[iter].Author,
+			p[iter].Message,
+			p[iter].Parent,
+			p[iter].Thread,
+			p[iter].Forum,
+		).Scan(&p[iter].Id, &created)
 		if err != nil {
 			return err
 		}
 		if created.Valid {
-			val.Created = created.Time.Format(time.RFC3339Nano)
+			p[iter].Created = created.Time.Format(time.RFC3339Nano)
 		}
 	}
     if len(p) > 0 {

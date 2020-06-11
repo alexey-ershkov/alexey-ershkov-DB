@@ -32,65 +32,53 @@ create EXTENSION IF NOT EXISTS CITEXT;
 
 create unlogged table usr
 (
-    email    citext collate "C" not null,
+    id       serial primary key,
+    email    citext collate "C" not null unique,
     fullname text               not null,
-    nickname citext collate "C" not null,
-    about    text,
-    constraint user_pk primary key (email)
+    nickname citext collate "C" not null unique,
+    about    text
 );
 
-create index index_usr_nickname on usr (nickname);
 create index index_usr_all on usr (nickname, fullname, email, about);
 cluster usr using index_usr_all;
 
 
-create unique index usr_nickname_uindex
-    on usr (nickname);
-
 create unlogged table forum
 (
-    slug    citext collate "C" not null
-        constraint forum_pk
-            primary key,
+    id      serial primary key,
+    slug    citext collate "C" not null unique,
     title   text               not null,
     usr     citext collate "C" not null
-        constraint forum_user_email_fk
-            references usr (nickname)
-            on update cascade on delete cascade,
+        references usr (nickname)
+            on delete cascade,
     threads bigint default 0,
     posts   bigint default 0
 );
 
-create index index_forum_slug on forum (slug);
 create index index_forum_slug_hash on forum using hash (slug);
-cluster forum using index_forum_slug_hash;
+-- cluster forum using index_forum_slug_hash;
 create index index_usr_fk on forum (usr);
 create index index_forum_all on forum (slug, title, usr, posts, threads);
 
 create unlogged table thread
 (
-    id      serial             not null
-        constraint thread_pk
-            primary key,
+    id      serial primary key,
     title   text               not null,
     message text               not null,
     created timestamp with time zone,
-    slug    citext collate "C",
+    slug    citext collate "C" unique,
     votes   int default 0,
     usr     citext collate "C" not null
-        constraint thread_user_email_fk
-            references usr (nickname)
-            on update cascade on delete cascade,
+        references usr (nickname)
+            on delete cascade,
     forum   citext collate "C" not null
-        constraint thread_forum_slug_fk
-            references forum
-            on update cascade on delete cascade
+        references forum (slug)
+            on delete cascade
 );
 
 create index index_thread_forum_created on thread (forum, created);
-cluster thread using index_thread_forum_created;
-create index index_thread_id_and_slug on thread (CITEXT(id), slug);
-create index index_thread_id on thread (id);
+-- cluster thread using index_thread_forum_created;
+create index index_thread_id_and_slug on thread (CITEXT(id), slug); -- Переписать запрос
 create index index_thread_slug on thread (slug);
 create index index_thread_slug_hash on thread using hash (slug);
 create index index_thread_all on thread (usr, forum, message, title);
@@ -98,33 +86,26 @@ create index index_thread_usr_fk on thread (usr);
 create index index_thread_forum_fk on thread (forum);
 
 
-create unique index thread_slug_uindex
-    on thread (slug);
-
 create unlogged table post
 (
-    id       bigserial
-        constraint post_pk
-            primary key,
+    id       bigserial          primary key,
     message  text                  not null,
     isedited boolean default false not null,
     parent   integer default 0,
     created  timestamp,
     usr      citext collate "C"    not null
-        constraint post_usr_nickname_fk
-            references usr (nickname)
-            on update cascade on delete cascade,
+             references usr (nickname)
+             on delete cascade,
     thread   integer               not null
-        constraint post_thread_id_fk
-            references thread
-            on update cascade on delete cascade,
+             references thread
+             on delete cascade,
     forum    citext                not null
-        constraint post_forum_slug_fk
-            references forum
-            on update cascade on delete cascade,
+             references forum (slug)
+             on delete cascade,
     path     bigint[]
 );
 
+create index index_post_thread_id on post (thread, id);
 create index index_post_thread_path on post (thread, path);
 create index index_post_thread_parent_path on post (thread, parent, path);
 create index index_post_path1_path on post ((path[1]), path);
@@ -138,41 +119,30 @@ create index index_post_forum_fk on post (forum);
 
 create unlogged table vote
 (
-    id     serial             not null
-        constraint vote_pk
-            primary key,
+    id     serial           primary key,
     vote   integer            not null,
     usr    citext collate "C" not null
-        constraint vote_usr_nickname_fk
             references usr (nickname)
-            on update cascade on delete cascade,
+            on delete cascade,
     thread integer            not null
-        constraint vote_thread_id_fk
             references thread
-            on update cascade on delete cascade,
-    constraint vote_pk_2
-        unique (usr, thread)
+            on delete cascade
 );
 
-
+create unique index vote_user_thread_unique on vote (usr, thread);
 create index index_vote_thread on vote (thread);
 
 
 create unlogged table forum_users
 (
     forum    citext collate "C" not null
-        constraint forum_users_forum_slug_fk
-            references forum
-            on update cascade on delete cascade,
+            references forum (slug)  on delete cascade,
     nickname citext collate "C" not null
-        constraint forum_users_usr_nickname_fk
-            references usr (nickname)
-            on update cascade on delete cascade
-
+            references usr (nickname) on delete cascade
 );
 
 create unique index index_forum_nickname on forum_users (forum, nickname);
--- cluster forum_users using index_forum_user_nickname;
+cluster forum_users using index_forum_nickname;
 
 create or replace function updater()
     RETURNS trigger AS
@@ -237,6 +207,7 @@ create or replace function insert_thread_votes()
 $update_thread_votes$
 declare
     prev_vote int;
+    new_vote  int;
 begin
     select vote
     from vote
@@ -247,7 +218,8 @@ begin
         update thread set votes = (votes + new.vote) where id = new.thread;
     else
         if prev_vote != new.vote then
-            update thread set votes = (votes + 2 * new.vote) where id = new.thread;
+            new_vote = 2 * new.vote;
+            update thread set votes = (votes + new_vote) where id = new.thread;
         end if;
     end if;
     return new;
@@ -263,12 +235,12 @@ execute procedure insert_thread_votes();
 
 create or replace function update_forum_threads()
     returns trigger as
-    $update_forum_threads$
-    begin
-        update forum set threads = (threads + 1) where slug = new.forum;
-        return new;
-    end;
-    $update_forum_threads$ language plpgsql;
+$update_forum_threads$
+begin
+    update forum set threads = (threads + 1) where slug = new.forum;
+    return new;
+end;
+$update_forum_threads$ language plpgsql;
 
 create trigger upd_forum_threads
     after insert

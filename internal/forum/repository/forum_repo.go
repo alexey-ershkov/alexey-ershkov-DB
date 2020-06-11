@@ -203,7 +203,8 @@ func (rep *Repository) Prepare() error {
 	if err != nil {
 		return err
 	}
-
+	////TODO переписать на t.forum = $1 везде
+	////TODO убрать JOIN
 	_, err = rep.db.Prepare("forum_get_threads_asc_with_limit",
 		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, t.votes FROM thread t "+
 			"JOIN forum f on t.forum = f.slug "+
