@@ -29,23 +29,23 @@ func (rep *PostRepository) InsertInto(tx *pgx.Tx, p []*models.Post, th *models.T
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	for _, val := range p {
-		val.Forum = th.Forum
-		val.Thread = th.Id
+	for iter := range p {
+		p[iter].Forum = th.Forum
+		p[iter].Thread = th.Id
 		var err error
 		err = tx.QueryRow(
 			"post_insert_into",
-			val.Author,
-			val.Message,
-			val.Parent,
-			val.Thread,
-			val.Forum,
-		).Scan(&val.Id, &created)
+			p[iter].Author,
+			p[iter].Message,
+			p[iter].Parent,
+			p[iter].Thread,
+			p[iter].Forum,
+		).Scan(&p[iter].Id, &created)
 		if err != nil {
 			return err
 		}
 		if created.Valid {
-			val.Created = created.Time.Format(time.RFC3339Nano)
+			p[iter].Created = created.Time.Format(time.RFC3339Nano)
 		}
 	}
 	sqlForumPostUpdate := "UPDATE forum  SET posts = (posts + $1) " +

@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"github.com/jackc/pgx"
 	"github.com/sirupsen/logrus"
+	"strconv"
 	"time"
 )
 
@@ -84,25 +85,49 @@ func (rep *Repository) GetCreated(tx *pgx.Tx, th *models.Thread) error {
 }
 
 func (rep *Repository) GetBySlugOrId(tx *pgx.Tx, th *models.Thread) error {
-	sqlGetThreadBySlugOrId := "SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, t.votes " +
-		"FROM thread t " +
-		"JOIN forum f on t.forum = f.slug " +
-		"WHERE t.id::citext = $1 OR t.slug  = $1 "
+	Id, err := strconv.ParseInt(th.Slug, 10, 64)
+	if err == nil {
+		th.Slug = ""
+		th.Id = Id
+	}
 	slug := sql.NullString{}
 	created := sql.NullTime{}
 	votes := sql.NullInt64{}
-	err := tx.QueryRow(
-		sqlGetThreadBySlugOrId,
-		th.Slug).Scan(
-		&th.Id,
-		&th.Title,
-		&th.Message,
-		&created,
-		&slug,
-		&th.Author,
-		&th.Forum,
-		&votes,
-	)
+	if th.Slug != "" {
+		sqlGetThreadBySlug := "SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, t.votes " +
+			"FROM thread t " +
+			"JOIN forum f on t.forum = f.slug " +
+			"WHERE t.slug  = $1 "
+		err = tx.QueryRow(
+			sqlGetThreadBySlug,
+			th.Slug).Scan(
+			&th.Id,
+			&th.Title,
+			&th.Message,
+			&created,
+			&slug,
+			&th.Author,
+			&th.Forum,
+			&votes,
+		)
+	} else {
+		sqlGetThreadById := "SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, t.votes " +
+			"FROM thread t " +
+			"JOIN forum f on t.forum = f.slug " +
+			"WHERE t.id = $1 "
+		err = tx.QueryRow(
+			sqlGetThreadById,
+			th.Id).Scan(
+			&th.Id,
+			&th.Title,
+			&th.Message,
+			&created,
+			&slug,
+			&th.Author,
+			&th.Forum,
+			&votes,
+		)
+	}
 	if err != nil {
 		return err
 	}
@@ -138,8 +163,8 @@ func (rep *Repository) InsertIntoVotes(tx *pgx.Tx, v *models.Vote) error {
 }
 
 func (rep *Repository) GetVotes(tx *pgx.Tx, th *models.Thread, v *models.Vote) error {
-	sqlGetVotes := "SELECT SUM(v.vote) from vote v " +
-		"WHERE v.thread = $1"
+	sqlGetVotes := "SELECT votes from thread " +
+		"WHERE id = $1"
 	votes := sql.NullInt64{}
 	err := tx.QueryRow(
 		sqlGetVotes,
