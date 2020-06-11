@@ -24,7 +24,7 @@ func (tUC *Usecase) CreateThread(th *models.Thread) error {
 	}
 
 	if err := tUC.repo.InsertInto(tx, th); err != nil {
-		if err := tUC.repo.GetBySlug(tx, th); err != nil {
+		if err := tUC.repo.GetBySlugOrId(tx, th); err != nil {
 			return tools.UserNotExist
 		}
 

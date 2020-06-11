@@ -24,8 +24,12 @@ func (rep *Repository) InsertInto(tx *pgx.Tx, user *models.User) error {
 		about.String = user.About
 		about.Valid = true
 	}
+	sqlUserInsertInto := "INSERT INTO usr (email, fullname, nickname, about) " +
+		"VALUES ($1, $2, $3, $4) " +
+		"ON CONFLICT DO NOTHING " +
+		"RETURNING email"
 	err := tx.QueryRow(
-		"user_insert",
+		sqlUserInsertInto,
 		user.Email,
 		user.Fullname,
 		user.Nickname,
@@ -38,8 +42,11 @@ func (rep *Repository) InsertInto(tx *pgx.Tx, user *models.User) error {
 }
 
 func (rep *Repository) GetByNickname(tx *pgx.Tx, user *models.User) error {
+	sqlUserGetByNickname := "SELECT u.email, u.fullname, u.nickname, u.about " +
+		"FROM usr u " +
+		"WHERE nickname = $1 "
 	row := tx.QueryRow(
-		"user_get_by_nickname",
+		sqlUserGetByNickname,
 		user.Nickname,
 	)
 	fullname := &sql.NullString{}
@@ -57,8 +64,11 @@ func (rep *Repository) GetByNickname(tx *pgx.Tx, user *models.User) error {
 }
 
 func (rep *Repository) GetByNicknameOrEmail(tx *pgx.Tx, user *models.User) ([]models.User, error) {
+	sqlGetUserByNicknameOrEmail := "SELECT u.email, u.fullname, u.nickname, u.about " +
+		"FROM usr u " +
+		"WHERE nickname = $1 OR email = $2"
 	rows, err := tx.Query(
-		"user_get_by_nickname_or_email",
+		sqlGetUserByNicknameOrEmail,
 		user.Nickname,
 		user.Email,
 	)
@@ -85,7 +95,13 @@ func (rep *Repository) GetByNicknameOrEmail(tx *pgx.Tx, user *models.User) ([]mo
 }
 
 func (rep *Repository) Update(tx *pgx.Tx, user *models.User) error {
-	_, err := tx.Exec("user_update",
+	sqlUserUpdate := "UPDATE usr SET " +
+		"email = $1, " +
+		"nickname = $2, " +
+		"fullname = $3, " +
+		"about = $4 " +
+		"WHERE nickname = $2 RETURNING email"
+	_, err := tx.Exec(sqlUserUpdate,
 		user.Email,
 		user.Nickname,
 		user.Fullname,
@@ -160,46 +176,5 @@ func (rep *Repository) CommitTx(tx *pgx.Tx) error {
 }
 
 func (rep *Repository) Prepare() error {
-
-	_, err := rep.db.Prepare("user_insert",
-		"INSERT INTO usr (email, fullname, nickname, about) "+
-			"VALUES ($1, $2, $3, $4) "+
-			"ON CONFLICT DO NOTHING "+
-			"RETURNING email",
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = rep.db.Prepare("user_get_by_nickname",
-		"SELECT u.email, u.fullname, u.nickname, u.about "+
-			"FROM usr u "+
-			"WHERE nickname = $1 ",
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = rep.db.Prepare("user_get_by_nickname_or_email",
-		"SELECT u.email, u.fullname, u.nickname, u.about "+
-			"FROM usr u "+
-			"WHERE nickname = $1 OR email = $2",
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = rep.db.Prepare("user_update",
-		"UPDATE usr SET "+
-			"email = $1, "+
-			"nickname = $2, "+
-			"fullname = $3, "+
-			"about = $4 "+
-			"WHERE nickname = $2 RETURNING email",
-	)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }

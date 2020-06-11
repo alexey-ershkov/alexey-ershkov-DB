@@ -17,8 +17,12 @@ func NewForumRepository(db *pgx.ConnPool) forum.Repository {
 }
 
 func (rep *Repository) InsertInto(tx *pgx.Tx, f *models.Forum) error {
+	sqlForumInsertInto := "INSERT INTO forum (slug, title, usr) " +
+		"VALUES ($1, $2, $3) " +
+		"ON CONFLICT DO NOTHING " +
+		"RETURNING title"
 	row := tx.QueryRow(
-		"forum_insert_into",
+		sqlForumInsertInto,
 		f.Slug,
 		f.Title,
 		f.User,
@@ -32,8 +36,12 @@ func (rep *Repository) InsertInto(tx *pgx.Tx, f *models.Forum) error {
 }
 
 func (rep *Repository) GetBySlug(tx *pgx.Tx, f *models.Forum) error {
+	sqlForumGetBySlug := "SELECT f.posts, f.slug, f.threads,f.title, u.nickname " +
+		"FROM forum f " +
+		"JOIN usr u on f.usr = u.nickname " +
+		"WHERE f.slug = $1 "
 	row := tx.QueryRow(
-		"forum_get_by_slug",
+		sqlForumGetBySlug,
 		f.Slug,
 	)
 	if err := row.Scan(&f.Posts, &f.Slug, &f.Threads, &f.Title, &f.User); err != nil {
@@ -153,25 +161,7 @@ func (rep *Repository) CommitTx(tx *pgx.Tx) error {
 }
 
 func (rep *Repository) Prepare() error {
-	_, err := rep.db.Prepare("forum_insert_into",
-		"INSERT INTO forum (slug, title, usr) "+
-			"VALUES ($1, $2, $3) "+
-			"ON CONFLICT DO NOTHING "+
-			"RETURNING title",
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = rep.db.Prepare("forum_get_by_slug",
-		"SELECT f.posts, f.slug, f.threads,f.title, u.nickname "+
-			"FROM forum f "+
-			"JOIN usr u on f.usr = u.nickname "+
-			"WHERE f.slug = $1 ",
-	)
-	if err != nil {
-		return err
-	}
+	var err error
 
 	_, err = rep.db.Prepare("forum_get_threads_desc",
 		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, t.votes FROM thread t "+

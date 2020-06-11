@@ -8,7 +8,6 @@ import (
 type Repository interface {
 	InsertInto(tx *pgx.Tx, thread *models.Thread) error
 	GetCreated(tx *pgx.Tx, thread *models.Thread) error
-	GetBySlug(tx *pgx.Tx, thread *models.Thread) error
 	GetBySlugOrId(tx *pgx.Tx, thread *models.Thread) error
 	InsertIntoVotes(tx *pgx.Tx, vote *models.Vote) error
 	GetVotes(tx *pgx.Tx, thread *models.Thread, vote *models.Vote) error
