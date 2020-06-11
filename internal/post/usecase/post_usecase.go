@@ -38,11 +38,7 @@ func (pUC *PostUsecase) CreatePosts(p []*models.Post, th *models.Thread) error {
 	if err = pUC.tRepo.GetBySlugOrId(tx, th); err != nil {
 		return tools.ThreadNotExist
 	}
-	for _, val := range p {
-		val.Thread = th.Id
-		val.Forum = th.Forum
-	}
-	if err = pUC.pRepo.InsertInto(tx, p); err != nil {
+	if err = pUC.pRepo.InsertInto(tx, p, th); err != nil {
 		if err.Error() == "ERROR: Parent post was created in another thread (SQLSTATE 00404)" {
 			return tools.ParentNotExist
 		} else {
@@ -70,7 +66,6 @@ func (pUC *PostUsecase) GetPost(p *models.Post) error {
 
 		return tools.PostNotExist
 	}
-
 
 	err = pUC.pRepo.CommitTx(tx)
 	if err != nil {

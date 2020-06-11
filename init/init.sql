@@ -125,14 +125,14 @@ create unlogged table post
     path     bigint[]
 );
 
-create index index_post_thread_path on post (thread, path);
+-- create index index_post_thread_path on post (thread, path);
 create index index_post_thread_parent_path on post (thread, parent, path);
-create index index_post_path1_path on post ((path[1]), path);
-cluster post using index_post_path1_path;
+-- create index index_post_path1_path on post ((path[1]), path);
+-- cluster post using index_post_path1_path;
 create index index_post_thread_created_id on post (thread, created, id);
 
--- create index index_post_usr_fk on post (usr);
--- create index index_post_forum_fk on post (forum);
+create index index_post_usr_fk on post (usr);
+create index index_post_forum_fk on post (forum);
 
 
 

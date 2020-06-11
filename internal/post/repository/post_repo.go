@@ -19,7 +19,7 @@ func NewPostRepository(db *pgx.ConnPool) post.Repository {
 	}
 }
 
-func (rep *PostRepository) InsertInto(tx *pgx.Tx, p []*models.Post) error {
+func (rep *PostRepository) InsertInto(tx *pgx.Tx, p []*models.Post, th *models.Thread) error {
 	created := sql.NullTime{}
 	_, err := tx.Prepare("post_insert_into",
 		"INSERT INTO post (usr, message,  parent, thread, forum, created) "+
@@ -30,6 +30,8 @@ func (rep *PostRepository) InsertInto(tx *pgx.Tx, p []*models.Post) error {
 		logrus.Fatal(err)
 	}
 	for _, val := range p {
+		val.Forum = th.Forum
+		val.Thread = th.Id
 		var err error
 		err = tx.QueryRow(
 			"post_insert_into",
@@ -46,15 +48,10 @@ func (rep *PostRepository) InsertInto(tx *pgx.Tx, p []*models.Post) error {
 			val.Created = created.Time.Format(time.RFC3339Nano)
 		}
 	}
-	_, err = tx.Prepare("forum_posts_update",
-		"UPDATE forum  SET posts = (posts + $1) "+
-			"where slug = $2",
-	)
-	if err != nil {
-		logrus.Fatal(err)
-	}
+	sqlForumPostUpdate := "UPDATE forum  SET posts = (posts + $1) " +
+		"where slug = $2"
 	if len(p) > 0 {
-		_, err := tx.Exec("forum_posts_update", len(p), p[0].Forum)
+		_, err := tx.Exec(sqlForumPostUpdate, len(p), p[0].Forum)
 		if err != nil {
 			logrus.Error("Error while update post count: " + err.Error())
 		}

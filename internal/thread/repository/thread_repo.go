@@ -248,71 +248,88 @@ func (rep *Repository) Update(tx *pgx.Tx, th *models.Thread) error {
 
 func (rep *Repository) GetPosts(tx *pgx.Tx, th *models.Thread, desc, sort, limit, since string) ([]models.Post, error) {
 	posts := make([]models.Post, 0)
-	var err error
-	var rows *pgx.Rows
+	var sqlString string
 	if sort == "tree" {
-		switch true {
-		case desc != "true" && since == "" && limit == "":
-			rows, err = tx.Query("thread_posts_tree_asc", th.Id)
-		case desc == "true" && since == "" && limit == "":
-			rows, err = tx.Query("thread_posts_tree_desc", th.Id)
-		case desc != "true" && since != "" && limit == "":
-			rows, err = tx.Query("thread_posts_tree_asc_with_since", th.Id, since)
-		case desc == "true" && since != "" && limit == "":
-			rows, err = tx.Query("thread_posts_tree_desc_with_since", th.Id, since)
-		case desc != "true" && since == "" && limit != "":
-			rows, err = tx.Query("thread_posts_tree_asc_with_limit", th.Id, limit)
-		case desc == "true" && since == "" && limit != "":
-			rows, err = tx.Query("thread_posts_tree_desc_with_limit", th.Id, limit)
-		case desc != "true" && since != "" && limit != "":
-			rows, err = tx.Query("thread_posts_tree_asc_with_since_with_limit", th.Id, since, limit)
-		case desc == "true" && since != "" && limit != "":
-			rows, err = tx.Query("thread_posts_tree_desc_with_since_with_limit", th.Id, since, limit)
+
+		sqlString = "SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread " +
+			"FROM post p " +
+			"WHERE p.thread = $1 "
+
+		if since != "" {
+			if desc == "true" {
+				sqlString += "AND p.path::bigint[] < (SELECT path FROM post WHERE id = " + since + " )::bigint[] "
+			} else {
+				sqlString += "AND p.path::bigint[] > (SELECT path FROM post WHERE id = " + since + " )::bigint[] "
+			}
+		}
+
+		sqlString += "ORDER BY p.path "
+
+		if desc == "true" {
+			sqlString += "DESC "
+		}
+
+		if limit != "" {
+			sqlString += "LIMIT " + limit + " "
 		}
 	} else if sort == "parent_tree" {
-		switch true {
-		case desc != "true" && since == "" && limit == "":
-			rows, err = tx.Query("thread_posts_parent_asc", th.Id)
-		case desc == "true" && since == "" && limit == "":
-			rows, err = tx.Query("thread_posts_parent_desc", th.Id)
-		case desc != "true" && since != "" && limit == "":
-			rows, err = tx.Query("thread_posts_parent_asc_with_since", th.Id, since)
-		case desc == "true" && since != "" && limit == "":
-			rows, err = tx.Query("thread_posts_parent_desc_with_since", th.Id, since)
-		case desc != "true" && since == "" && limit != "":
-			rows, err = tx.Query("thread_posts_parent_asc_with_limit", th.Id, limit)
-		case desc == "true" && since == "" && limit != "":
-			rows, err = tx.Query("thread_posts_parent_desc_with_limit", th.Id, limit)
-		case desc != "true" && since != "" && limit != "":
-			rows, err = tx.Query("thread_posts_parent_asc_with_since_with_limit", th.Id, since, limit)
-		case desc == "true" && since != "" && limit != "":
-			rows, err = tx.Query("thread_posts_parent_desc_with_since_with_limit", th.Id, since, limit)
+
+		sqlString = "SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread FROM " +
+			"(" +
+			"   SELECT * FROM post p2 " +
+			"   WHERE p2.thread = $1 AND p2.parent = 0 "
+
+		if since != "" {
+			if desc == "true" {
+				sqlString += "AND p2.path[1] < (SELECT path[1] FROM post WHERE id = " + since + " ) "
+			} else {
+				sqlString += "AND p2.path[1] > (SELECT path[1] FROM post WHERE id = " + since + " ) "
+			}
 		}
+		sqlString += "ORDER BY p2.path "
+		if desc == "true" {
+			sqlString += "DESC "
+		}
+		if limit != "" {
+			sqlString += "LIMIT " + limit + " "
+		}
+		sqlString += ") AS prt " +
+			"JOIN post p ON prt.path[1] = p.path[1] " +
+			"ORDER BY p.path[1] "
+		if desc == "true" {
+			sqlString += "DESC "
+		}
+		sqlString += ", p.path "
+
 	} else {
-		switch true {
-		case desc != "true" && since == "" && limit == "":
-			rows, err = tx.Query("thread_post_flat_asc", th.Id)
-		case desc == "true" && since == "" && limit == "":
-			rows, err = tx.Query("thread_post_flat_desc", th.Id)
-		case desc != "true" && since != "" && limit == "":
-			rows, err = tx.Query("thread_post_flat_asc_with_since", th.Id, since)
-		case desc == "true" && since != "" && limit == "":
-			rows, err = tx.Query("thread_post_flat_desc_with_since", th.Id, since)
-		case desc != "true" && since == "" && limit != "":
-			rows, err = tx.Query("thread_post_flat_asc_with_limit", th.Id, limit)
-		case desc == "true" && since == "" && limit != "":
-			rows, err = tx.Query("thread_post_flat_desc_with_limit", th.Id, limit)
-		case desc != "true" && since != "" && limit != "":
-			rows, err = tx.Query("thread_post_flat_asc_with_since_with_limit", th.Id, since, limit)
-		case desc == "true" && since != "" && limit != "":
-			rows, err = tx.Query("thread_post_flat_desc_with_since_with_limit", th.Id, since, limit)
+
+		sqlString = "SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread " +
+			"FROM post p " +
+			"WHERE p.thread = $1 "
+
+		if since != "" {
+			if desc == "true" {
+				sqlString += "AND p.id < " + since + " "
+			} else {
+				sqlString += "AND p.id > " + since + " "
+			}
+		}
+		sqlString += "ORDER BY p.created "
+		if desc == "true" {
+			sqlString += "DESC "
+		}
+		sqlString += ", p.id "
+		if desc == "true" {
+			sqlString += "DESC "
+		}
+		if limit != "" {
+			sqlString += "LIMIT " + limit + " "
 		}
 	}
-
+	rows, err := tx.Query(sqlString, th.Id)
 	if err != nil {
 		return nil, err
 	}
-
 	for rows.Next() {
 		created := sql.NullTime{}
 		p := models.Post{}
@@ -354,302 +371,302 @@ func (rep *Repository) CommitTx(tx *pgx.Tx) error {
 }
 
 func (rep *Repository) Prepare() error {
-	var err error
-	_, err = rep.db.Prepare("thread_posts_tree_asc",
-		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
-			"FROM post p "+
-			"WHERE p.thread = $1 "+
-			"ORDER BY p.path ",
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = rep.db.Prepare("thread_posts_tree_desc",
-		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
-			"FROM post p "+
-			"WHERE p.thread = $1 "+
-			"ORDER BY p.path DESC ",
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = rep.db.Prepare("thread_posts_tree_asc_with_limit",
-		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
-			"FROM post p "+
-			"WHERE p.thread = $1 "+
-			"ORDER BY p.path "+
-			"LIMIT $2 ",
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = rep.db.Prepare("thread_posts_tree_desc_with_limit",
-		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
-			"FROM post p "+
-			"WHERE p.thread = $1 "+
-			"ORDER BY p.path DESC "+
-			"LIMIT $2 ",
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = rep.db.Prepare("thread_posts_tree_asc_with_since",
-		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
-			"FROM post p "+
-			"WHERE p.thread = $1 AND p.path::bigint[] > (SELECT path FROM post WHERE id = $2 )::bigint[] "+
-			"ORDER BY p.path ",
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = rep.db.Prepare("thread_posts_tree_desc_with_since",
-		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
-			"FROM post p "+
-			"WHERE p.thread = $1 AND p.path::bigint[] < (SELECT path FROM post WHERE id = $2 )::bigint[] "+
-			"ORDER BY p.path DESC ",
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = rep.db.Prepare("thread_posts_tree_asc_with_since_with_limit",
-		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
-			"FROM post p "+
-			"WHERE p.thread = $1 AND p.path::bigint[] > (SELECT path FROM post WHERE id = $2 )::bigint[] "+
-			"ORDER BY p.path "+
-			"LIMIT $3",
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = rep.db.Prepare("thread_posts_tree_desc_with_since_with_limit",
-		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
-			"FROM post p "+
-			"WHERE p.thread = $1 AND p.path::bigint[] < (SELECT path FROM post WHERE id = $2 )::bigint[] "+
-			"ORDER BY p.path DESC "+
-			"LIMIT $3",
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = rep.db.Prepare("thread_posts_parent_asc",
-		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread FROM "+
-			"("+
-			"   SELECT * FROM post p2 "+
-			"   WHERE p2.thread = $1 AND p2.parent = 0 "+
-			"	ORDER BY p2.path "+
-			") "+
-			"AS prt "+
-			"JOIN post p ON prt.path[1] = p.path[1] "+
-			"ORDER BY p.path[1] , p.path ",
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = rep.db.Prepare("thread_posts_parent_desc",
-		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread FROM "+
-			"("+
-			"   SELECT * FROM post p2 "+
-			"   WHERE p2.thread = $1 AND p2.parent = 0 "+
-			"	ORDER BY p2.path DESC "+
-			") "+
-			"AS prt "+
-			"JOIN post p ON prt.path[1] = p.path[1] "+
-			"ORDER BY p.path[1] DESC , p.path ",
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = rep.db.Prepare("thread_posts_parent_asc_with_limit",
-		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread FROM "+
-			"("+
-			"   SELECT * FROM post p2 "+
-			"   WHERE p2.thread = $1 AND p2.parent = 0 "+
-			"	ORDER BY p2.path "+
-			"	LIMIT $2"+
-			") "+
-			"AS prt "+
-			"JOIN post p ON prt.path[1] = p.path[1] "+
-			"ORDER BY p.path[1] , p.path ",
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = rep.db.Prepare("thread_posts_parent_desc_with_limit",
-		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread FROM "+
-			"("+
-			"   SELECT * FROM post p2 "+
-			"   WHERE p2.thread = $1 AND p2.parent = 0 "+
-			"	ORDER BY p2.path DESC "+
-			"	LIMIT $2"+
-			") "+
-			"AS prt "+
-			"JOIN post p ON prt.path[1] = p.path[1] "+
-			"ORDER BY p.path[1] DESC , p.path ",
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = rep.db.Prepare("thread_posts_parent_asc_with_since",
-		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread FROM "+
-			"("+
-			"   SELECT * FROM post p2 "+
-			"   WHERE p2.thread = $1 AND p2.parent = 0 "+
-			"	AND p2.path[1] > (SELECT path[1] FROM post WHERE id = $2 ) "+
-			"	ORDER BY p2.path "+
-			") "+
-			"AS prt "+
-			"JOIN post p ON prt.path[1] = p.path[1] "+
-			"ORDER BY p.path[1] , p.path ",
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = rep.db.Prepare("thread_posts_parent_desc_with_since",
-		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread FROM "+
-			"("+
-			"   SELECT * FROM post p2 "+
-			"   WHERE p2.thread = $1 AND p2.parent = 0 "+
-			"	AND p2.path[1] < (SELECT path[1] FROM post WHERE id = $2 ) "+
-			"	ORDER BY p2.path DESC "+
-			") "+
-			"AS prt "+
-			"JOIN post p ON prt.path[1] = p.path[1] "+
-			"ORDER BY p.path[1] DESC , p.path ",
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = rep.db.Prepare("thread_posts_parent_asc_with_since_with_limit",
-		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread FROM "+
-			"("+
-			"   SELECT * FROM post p2 "+
-			"   WHERE p2.thread = $1 AND p2.parent = 0 "+
-			"	AND p2.path[1] > (SELECT path[1] FROM post WHERE id = $2 ) "+
-			"	ORDER BY p2.path "+
-			"	LIMIT $3"+
-			") "+
-			"AS prt "+
-			"JOIN post p ON prt.path[1] = p.path[1] "+
-			"ORDER BY p.path[1] , p.path ",
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = rep.db.Prepare("thread_posts_parent_desc_with_since_with_limit",
-		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread FROM "+
-			"("+
-			"   SELECT * FROM post p2 "+
-			"   WHERE p2.thread = $1 AND p2.parent = 0 "+
-			"	AND p2.path[1] < (SELECT path[1] FROM post WHERE id = $2 ) "+
-			"	ORDER BY p2.path DESC "+
-			"	LIMIT $3"+
-			") "+
-			"AS prt "+
-			"JOIN post p ON prt.path[1] = p.path[1] "+
-			"ORDER BY p.path[1] DESC , p.path ",
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = rep.db.Prepare("thread_post_flat_asc",
-		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
-			"FROM post p "+
-			"WHERE p.thread = $1 "+
-			"ORDER BY p.created, p.id",
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = rep.db.Prepare("thread_post_flat_desc",
-		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
-			"FROM post p "+
-			"WHERE p.thread = $1 "+
-			"ORDER BY p.created DESC , p.id DESC ",
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = rep.db.Prepare("thread_post_flat_asc_with_limit",
-		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
-			"FROM post p "+
-			"WHERE p.thread = $1 "+
-			"ORDER BY p.created, p.id "+
-			"LIMIT $2 ",
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = rep.db.Prepare("thread_post_flat_desc_with_limit",
-		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
-			"FROM post p "+
-			"WHERE p.thread = $1 "+
-			"ORDER BY p.created DESC , p.id DESC "+
-			"LIMIT $2",
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = rep.db.Prepare("thread_post_flat_asc_with_since",
-		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
-			"FROM post p "+
-			"WHERE p.thread = $1 AND p.id > $2 "+
-			"ORDER BY p.created, p.id",
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = rep.db.Prepare("thread_post_flat_desc_with_since",
-		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
-			"FROM post p "+
-			"WHERE p.thread = $1 AND p.id < $2 "+
-			"ORDER BY p.created DESC , p.id DESC ",
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = rep.db.Prepare("thread_post_flat_asc_with_since_with_limit",
-		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
-			"FROM post p "+
-			"WHERE p.thread = $1 AND p.id > $2 "+
-			"ORDER BY p.created, p.id "+
-			"LIMIT $3 ",
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = rep.db.Prepare("thread_post_flat_desc_with_since_with_limit",
-		"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
-			"FROM post p "+
-			"WHERE p.thread = $1 AND p.id < $2 "+
-			"ORDER BY p.created DESC , p.id DESC "+
-			"LIMIT $3",
-	)
-	if err != nil {
-		return err
-	}
+	//var err error
+	//_, err = rep.db.Prepare("thread_posts_tree_asc",
+	//	"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
+	//		"FROM post p "+
+	//		"WHERE p.thread = $1 "+
+	//		"ORDER BY p.path ",
+	//)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//_, err = rep.db.Prepare("thread_posts_tree_desc",
+	//	"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
+	//		"FROM post p "+
+	//		"WHERE p.thread = $1 "+
+	//		"ORDER BY p.path DESC ",
+	//)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//_, err = rep.db.Prepare("thread_posts_tree_asc_with_limit",
+	//	"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
+	//		"FROM post p "+
+	//		"WHERE p.thread = $1 "+
+	//		"ORDER BY p.path "+
+	//		"LIMIT $2 ",
+	//)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//_, err = rep.db.Prepare("thread_posts_tree_desc_with_limit",
+	//	"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
+	//		"FROM post p "+
+	//		"WHERE p.thread = $1 "+
+	//		"ORDER BY p.path DESC "+
+	//		"LIMIT $2 ",
+	//)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//_, err = rep.db.Prepare("thread_posts_tree_asc_with_since",
+	//	"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
+	//		"FROM post p "+
+	//		"WHERE p.thread = $1 AND p.path::bigint[] > (SELECT path FROM post WHERE id = $2 )::bigint[] "+
+	//		"ORDER BY p.path ",
+	//)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//_, err = rep.db.Prepare("thread_posts_tree_desc_with_since",
+	//	"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
+	//		"FROM post p "+
+	//		"WHERE p.thread = $1 AND p.path::bigint[] < (SELECT path FROM post WHERE id = $2 )::bigint[] "+
+	//		"ORDER BY p.path DESC ",
+	//)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//_, err = rep.db.Prepare("thread_posts_tree_asc_with_since_with_limit",
+	//	"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
+	//		"FROM post p "+
+	//		"WHERE p.thread = $1 AND p.path::bigint[] > (SELECT path FROM post WHERE id = $2 )::bigint[] "+
+	//		"ORDER BY p.path "+
+	//		"LIMIT $3",
+	//)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//_, err = rep.db.Prepare("thread_posts_tree_desc_with_since_with_limit",
+	//	"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
+	//		"FROM post p "+
+	//		"WHERE p.thread = $1 AND p.path::bigint[] < (SELECT path FROM post WHERE id = $2 )::bigint[] "+
+	//		"ORDER BY p.path DESC "+
+	//		"LIMIT $3",
+	//)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//_, err = rep.db.Prepare("thread_posts_parent_asc",
+	//	"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread FROM "+
+	//		"("+
+	//		"   SELECT * FROM post p2 "+
+	//		"   WHERE p2.thread = $1 AND p2.parent = 0 "+
+	//		"	ORDER BY p2.path "+
+	//		") "+
+	//		"AS prt "+
+	//		"JOIN post p ON prt.path[1] = p.path[1] "+
+	//		"ORDER BY p.path[1] , p.path ",
+	//)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//_, err = rep.db.Prepare("thread_posts_parent_desc",
+	//	"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread FROM "+
+	//		"("+
+	//		"   SELECT * FROM post p2 "+
+	//		"   WHERE p2.thread = $1 AND p2.parent = 0 "+
+	//		"	ORDER BY p2.path DESC "+
+	//		") "+
+	//		"AS prt "+
+	//		"JOIN post p ON prt.path[1] = p.path[1] "+
+	//		"ORDER BY p.path[1] DESC , p.path ",
+	//)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//_, err = rep.db.Prepare("thread_posts_parent_asc_with_limit",
+	//	"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread FROM "+
+	//		"("+
+	//		"   SELECT * FROM post p2 "+
+	//		"   WHERE p2.thread = $1 AND p2.parent = 0 "+
+	//		"	ORDER BY p2.path "+
+	//		"	LIMIT $2"+
+	//		") "+
+	//		"AS prt "+
+	//		"JOIN post p ON prt.path[1] = p.path[1] "+
+	//		"ORDER BY p.path[1] , p.path ",
+	//)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//_, err = rep.db.Prepare("thread_posts_parent_desc_with_limit",
+	//	"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread FROM "+
+	//		"("+
+	//		"   SELECT * FROM post p2 "+
+	//		"   WHERE p2.thread = $1 AND p2.parent = 0 "+
+	//		"	ORDER BY p2.path DESC "+
+	//		"	LIMIT $2"+
+	//		") "+
+	//		"AS prt "+
+	//		"JOIN post p ON prt.path[1] = p.path[1] "+
+	//		"ORDER BY p.path[1] DESC , p.path ",
+	//)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//_, err = rep.db.Prepare("thread_posts_parent_asc_with_since",
+	//	"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread FROM "+
+	//		"("+
+	//		"   SELECT * FROM post p2 "+
+	//		"   WHERE p2.thread = $1 AND p2.parent = 0 "+
+	//		"	AND p2.path[1] > (SELECT path[1] FROM post WHERE id = $2 ) "+
+	//		"	ORDER BY p2.path "+
+	//		") "+
+	//		"AS prt "+
+	//		"JOIN post p ON prt.path[1] = p.path[1] "+
+	//		"ORDER BY p.path[1] , p.path ",
+	//)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//_, err = rep.db.Prepare("thread_posts_parent_desc_with_since",
+	//	"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread FROM "+
+	//		"("+
+	//		"   SELECT * FROM post p2 "+
+	//		"   WHERE p2.thread = $1 AND p2.parent = 0 "+
+	//		"	AND p2.path[1] < (SELECT path[1] FROM post WHERE id = $2 ) "+
+	//		"	ORDER BY p2.path DESC "+
+	//		") "+
+	//		"AS prt "+
+	//		"JOIN post p ON prt.path[1] = p.path[1] "+
+	//		"ORDER BY p.path[1] DESC , p.path ",
+	//)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//_, err = rep.db.Prepare("thread_posts_parent_asc_with_since_with_limit",
+	//	"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread FROM "+
+	//		"("+
+	//		"   SELECT * FROM post p2 "+
+	//		"   WHERE p2.thread = $1 AND p2.parent = 0 "+
+	//		"	AND p2.path[1] > (SELECT path[1] FROM post WHERE id = $2 ) "+
+	//		"	ORDER BY p2.path "+
+	//		"	LIMIT $3"+
+	//		") "+
+	//		"AS prt "+
+	//		"JOIN post p ON prt.path[1] = p.path[1] "+
+	//		"ORDER BY p.path[1] , p.path ",
+	//)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//_, err = rep.db.Prepare("thread_posts_parent_desc_with_since_with_limit",
+	//	"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread FROM "+
+	//		"("+
+	//		"   SELECT * FROM post p2 "+
+	//		"   WHERE p2.thread = $1 AND p2.parent = 0 "+
+	//		"	AND p2.path[1] < (SELECT path[1] FROM post WHERE id = $2 ) "+
+	//		"	ORDER BY p2.path DESC "+
+	//		"	LIMIT $3"+
+	//		") "+
+	//		"AS prt "+
+	//		"JOIN post p ON prt.path[1] = p.path[1] "+
+	//		"ORDER BY p.path[1] DESC , p.path ",
+	//)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//_, err = rep.db.Prepare("thread_post_flat_asc",
+	//	"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
+	//		"FROM post p "+
+	//		"WHERE p.thread = $1 "+
+	//		"ORDER BY p.created, p.id",
+	//)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//_, err = rep.db.Prepare("thread_post_flat_desc",
+	//	"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
+	//		"FROM post p "+
+	//		"WHERE p.thread = $1 "+
+	//		"ORDER BY p.created DESC , p.id DESC ",
+	//)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//_, err = rep.db.Prepare("thread_post_flat_asc_with_limit",
+	//	"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
+	//		"FROM post p "+
+	//		"WHERE p.thread = $1 "+
+	//		"ORDER BY p.created, p.id "+
+	//		"LIMIT $2 ",
+	//)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//_, err = rep.db.Prepare("thread_post_flat_desc_with_limit",
+	//	"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
+	//		"FROM post p "+
+	//		"WHERE p.thread = $1 "+
+	//		"ORDER BY p.created DESC , p.id DESC "+
+	//		"LIMIT $2",
+	//)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//_, err = rep.db.Prepare("thread_post_flat_asc_with_since",
+	//	"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
+	//		"FROM post p "+
+	//		"WHERE p.thread = $1 AND p.id > $2 "+
+	//		"ORDER BY p.created, p.id",
+	//)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//_, err = rep.db.Prepare("thread_post_flat_desc_with_since",
+	//	"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
+	//		"FROM post p "+
+	//		"WHERE p.thread = $1 AND p.id < $2 "+
+	//		"ORDER BY p.created DESC , p.id DESC ",
+	//)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//_, err = rep.db.Prepare("thread_post_flat_asc_with_since_with_limit",
+	//	"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
+	//		"FROM post p "+
+	//		"WHERE p.thread = $1 AND p.id > $2 "+
+	//		"ORDER BY p.created, p.id "+
+	//		"LIMIT $3 ",
+	//)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//_, err = rep.db.Prepare("thread_post_flat_desc_with_since_with_limit",
+	//	"SELECT p.id, p.usr, p.created, p.forum, p.isEdited, p.message, p.parent, p.thread "+
+	//		"FROM post p "+
+	//		"WHERE p.thread = $1 AND p.id < $2 "+
+	//		"ORDER BY p.created DESC , p.id DESC "+
+	//		"LIMIT $3",
+	//)
+	//if err != nil {
+	//	return err
+	//}
 
 	return nil
 }
