@@ -364,7 +364,6 @@ func (rep *Repository) Prepare() error {
 		return err
 	}
 
-	//TODO проверка на существование записи в таблице forum users
 	_, err = rep.db.Prepare("get_forum_user",
 		"SELECT nickname FROM forum_users " +
 			"WHERE forum = $1 AND nickname = $2 ",
