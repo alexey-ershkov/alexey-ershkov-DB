@@ -78,7 +78,6 @@ create unlogged table thread
 
 create index index_thread_forum_created on thread (forum, created);
 -- cluster thread using index_thread_forum_created;
-create index index_thread_id_and_slug on thread (CITEXT(id), slug); -- Переписать запрос
 create index index_thread_slug on thread (slug);
 create index index_thread_slug_hash on thread using hash (slug);
 create index index_thread_all on thread (title, message, created, slug, usr, forum, votes);
