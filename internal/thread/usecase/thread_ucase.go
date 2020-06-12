@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"alexey-ershkov/alexey-ershkov-DB.git/internal/forum"
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/models"
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/thread"
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/tools"
@@ -8,46 +9,46 @@ import (
 
 type Usecase struct {
 	repo thread.Repository
+	fRepo forum.Repository
 }
 
-func NewThreadUsecase(r thread.Repository) thread.Usecase {
+func NewThreadUsecase(r thread.Repository, fr forum.Repository) thread.Usecase {
 	return &Usecase{
 		repo: r,
+		fRepo: fr,
 	}
 }
 
 func (tUC *Usecase) CreateThread(th *models.Thread) error {
-
 	tx, err := tUC.repo.CreateTx()
+	defer func() {
+		if err == nil {
+			_ = tx.Commit()
+		} else {
+			_ = tx.Rollback()
+		}
+	}()
 	if err != nil {
 		return err
 	}
 
-	if err := tUC.repo.InsertInto(tx, th); err != nil {
-		if err := tUC.repo.GetBySlug(tx, th); err != nil {
+	f := &models.Forum{}
+	f.Slug = th.Forum
+	err = tUC.fRepo.GetBySlug(tx, f)
+	if err != nil {
+		return tools.UserNotExist
+	}
+
+	th.Forum = f.Slug
+
+	err = tUC.repo.InsertInto(tx, th);
+	if err != nil {
+		err = tUC.repo.GetBySlug(tx, th);
+		if err != nil {
 			return tools.UserNotExist
 		}
 
-		err = tUC.repo.CommitTx(tx)
-		if err != nil {
-			return err
-		}
-
 		return tools.ThreadExist
-	}
-	if err := tUC.repo.GetCreated(tx, th); err != nil {
-
-		err = tUC.repo.CommitTx(tx)
-		if err != nil {
-			return err
-		}
-
-		return err
-	}
-
-	err = tUC.repo.CommitTx(tx)
-	if err != nil {
-		return err
 	}
 
 	return nil

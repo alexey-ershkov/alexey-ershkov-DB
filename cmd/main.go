@@ -96,7 +96,7 @@ func main() {
 
 	uUC := uUcase.NewUserUsecase(uRep)
 	fUC := fUUcase.NewForumUsecase(fRep, uRep)
-	thUC := thUcase.NewThreadUsecase(thRep)
+	thUC := thUcase.NewThreadUsecase(thRep ,fRep)
 	pUC := pUcase.NewPostUsecase(pRep, thRep, uRep)
 
 	uHandler.NewUserHandler(uUC, server)

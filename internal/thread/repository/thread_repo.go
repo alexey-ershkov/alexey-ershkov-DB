@@ -39,8 +39,7 @@ func (rep *Repository) InsertInto(tx *pgx.Tx, th *models.Thread) error {
 		th.Title,
 		slug,
 	)
-	var info int64
-	if err := row.Scan(&info); err != nil {
+	if err := row.Scan(&th.Id); err != nil {
 		return err
 	}
 	//_, err := tx.Exec(
@@ -54,35 +53,6 @@ func (rep *Repository) InsertInto(tx *pgx.Tx, th *models.Thread) error {
 	return nil
 }
 
-func (rep *Repository) GetCreated(tx *pgx.Tx, th *models.Thread) error {
-	row := tx.QueryRow(
-		"thread_get_created",
-		th.Author,
-		th.Forum,
-		th.Message,
-		th.Title,
-	)
-	created := sql.NullTime{}
-	slug := sql.NullString{}
-	if err := row.Scan(
-		&th.Id,
-		&th.Title,
-		&th.Message,
-		&created,
-		&slug,
-		&th.Author,
-		&th.Forum,
-	); err != nil {
-		return err
-	}
-	if created.Valid {
-		th.Created = created.Time.Format(time.RFC3339Nano)
-	}
-	if slug.Valid {
-		th.Slug = slug.String
-	}
-	return nil
-}
 
 func (rep *Repository) GetBySlug(tx *pgx.Tx, th *models.Thread) error {
 	row := tx.QueryRow(
@@ -399,20 +369,9 @@ func (rep *Repository) Prepare() error {
 		return err
 	}
 
-	_, err = rep.db.Prepare("thread_get_created",
-		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug  "+
-			"FROM thread t "+
-			"JOIN forum f on t.forum = f.slug "+
-			"WHERE t.usr = $1 AND t.forum = $2 AND t.message = $3 AND t.title = $4",
-	)
-	if err != nil {
-		return err
-	}
-
 	_, err = rep.db.Prepare("thread_get_by_slug",
-		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug  "+
+		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, t.forum  "+
 			"FROM thread t "+
-			"JOIN forum f on t.forum = f.slug "+
 			"WHERE t.slug = $1",
 	)
 	if err != nil {
@@ -420,9 +379,8 @@ func (rep *Repository) Prepare() error {
 	}
 
 	_, err = rep.db.Prepare("thread_get_by_slug_or_id",
-		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, t.votes "+
+		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, t.forum, t.votes "+
 			"FROM thread t "+
-			"JOIN forum f on t.forum = f.slug "+
 			"WHERE t.id::citext = $1 OR t.slug  = $1 ",
 	)
 	if err != nil {

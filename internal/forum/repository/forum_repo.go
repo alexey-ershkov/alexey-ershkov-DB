@@ -173,8 +173,7 @@ func (rep *Repository) Prepare() error {
 	}
 
 	_, err = rep.db.Prepare("forum_get_threads_desc",
-		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, t.votes FROM thread t "+
-			"JOIN forum f on t.forum = f.slug "+
+		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, t.forum, t.votes FROM thread t "+
 			"WHERE t.forum = $1 AND t.created <=  $2::timestamptz "+
 			"ORDER BY t.created DESC ",
 	)
@@ -183,8 +182,7 @@ func (rep *Repository) Prepare() error {
 	}
 
 	_, err = rep.db.Prepare("forum_get_threads_desc_with_limit",
-		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, t.votes FROM thread t "+
-			"JOIN forum f on t.forum = f.slug "+
+		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, t.forum, t.votes FROM thread t "+
 			"WHERE t.forum = $1 AND t.created <=  $2::timestamptz "+
 			"ORDER BY t.created DESC "+
 			"LIMIT $3",
@@ -194,19 +192,15 @@ func (rep *Repository) Prepare() error {
 	}
 
 	_, err = rep.db.Prepare("forum_get_threads_asc",
-		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, t.votes FROM thread t "+
-			"JOIN forum f on t.forum = f.slug "+
+		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, t.forum, t.votes FROM thread t "+
 			"WHERE t.forum = $1 AND t.created >=  $2::timestamptz "+
 			"ORDER BY t.created ",
 	)
 	if err != nil {
 		return err
 	}
-	////TODO переписать на t.forum = $1 везде
-	////TODO убрать JOIN
 	_, err = rep.db.Prepare("forum_get_threads_asc_with_limit",
-		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, t.votes FROM thread t "+
-			"JOIN forum f on t.forum = f.slug "+
+		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, t.forum, t.votes FROM thread t "+
 			"WHERE t.forum = $1 AND t.created >=  $2::timestamptz "+
 			"ORDER BY t.created "+
 			"LIMIT $3 ",
