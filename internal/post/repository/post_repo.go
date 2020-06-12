@@ -46,6 +46,7 @@ func (rep *PostRepository) InsertInto(tx *pgx.Tx, p []*models.Post, th *models.T
 			logrus.Error("Error while update post count: " + err.Error())
 		}
 	}
+
 	return nil
 }
 

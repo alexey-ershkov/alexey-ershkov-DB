@@ -5,6 +5,7 @@ import (
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/thread"
 	"database/sql"
 	"github.com/jackc/pgx"
+	"github.com/sirupsen/logrus"
 	"strconv"
 	"time"
 )
@@ -16,6 +17,17 @@ type Repository struct {
 func NewThreadRepository(db *pgx.ConnPool) thread.Repository {
 	return &Repository{
 		db: db,
+	}
+}
+
+func (rep *Repository) InsertIntoForumUsers (forum, nickname string) {
+	_, err := rep.db.Exec(
+		"forum_users_insert_into",
+		forum,
+		nickname,
+	)
+	if err != nil {
+		logrus.Error("Insert into forum users " + err.Error())
 	}
 }
 
@@ -42,14 +54,9 @@ func (rep *Repository) InsertInto(tx *pgx.Tx, th *models.Thread) error {
 	if err := row.Scan(&th.Id); err != nil {
 		return err
 	}
-	//_, err := tx.Exec(
-	//	"forum_users_insert_into",
-	//	th.Forum,
-	//	th.Author,
-	//)
-	//if err != nil {
-	//	return err
-	//}
+
+	rep.InsertIntoForumUsers(th.Forum, th.Author)
+
 	return nil
 }
 
@@ -175,7 +182,6 @@ func (rep *Repository) InsertIntoVotes(tx *pgx.Tx, th *models.Thread, v *models.
 
 	return nil
 }
-
 
 func (rep *Repository) Update(tx *pgx.Tx, th *models.Thread) error {
 	slug := sql.NullString{}
@@ -348,6 +354,15 @@ func (rep *Repository) Prepare() error {
 		"INSERT INTO thread (usr, created, forum, message, title, slug) VALUES ($1, $2, $3, $4, $5, $6)"+
 			"ON CONFLICT DO NOTHING "+
 			"RETURNING id",
+	)
+	if err != nil {
+		return err
+	}
+
+	//TODO проверка на существование записи в таблице forum users
+	_, err = rep.db.Prepare("get_forum_user",
+		"SELECT forum, nickname FROM forum_users " +
+			"WHERE forum = $1 AND nickname = $2 ",
 	)
 	if err != nil {
 		return err

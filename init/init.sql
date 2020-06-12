@@ -179,33 +179,6 @@ create trigger path_updater
     for each row
 EXECUTE procedure updater();
 
---------------------------------------- Переписать в программу -------------------------------------
-create or replace function insert_into_forum_users()
-    returns trigger as
-$insert_into_forum_users$
-begin
-    insert into forum_users (nickname, forum)
-    values (new.usr, new.forum)
-    on conflict do nothing;
-    return new;
-exception
-    when SQLSTATE '40P01' then
-        return new;
-end;
-$insert_into_forum_users$ LANGUAGE plpgsql;
-
-create trigger forum_user_insert_after_post
-    after insert
-    on post
-    for each row
-EXECUTE procedure insert_into_forum_users();
-
-create trigger forum_user_insert_after_thread
-    after insert
-    on thread
-    for each row
-EXECUTE procedure insert_into_forum_users();
-
 
 -------------------------------- INSERT THREAD VOTES -----------------------
 create or replace function insert_thread_votes()

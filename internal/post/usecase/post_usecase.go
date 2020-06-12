@@ -46,6 +46,10 @@ func (pUC *PostUsecase) CreatePosts(p []*models.Post, th *models.Thread) error {
 		}
 	}
 
+	for iter := range p {
+		pUC.tRepo.InsertIntoForumUsers(p[iter].Forum, p[iter].Author)
+	}
+
 	return nil
 }
 
