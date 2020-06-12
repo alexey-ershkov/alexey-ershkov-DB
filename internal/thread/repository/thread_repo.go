@@ -147,15 +147,39 @@ func (rep *Repository) GetBySlugOrId(tx *pgx.Tx, th *models.Thread) error {
 }
 
 func (rep *Repository) InsertIntoVotes(tx *pgx.Tx, v *models.Vote) error {
+	var vote int32
+	vote = 0
+
 	err := tx.QueryRow(
-		"votes_insert_into",
-		v.Vote,
+		"votes_get_info",
 		v.Nickname,
 		v.Thread,
-	).Scan(&v.Thread)
+	).Scan(&vote)
+
+
+	if vote == 0 {
+		err = tx.QueryRow(
+			"votes_insert_into",
+			v.Vote,
+			v.Nickname,
+			v.Thread,
+		).Scan(&v.Thread)
+	} else {
+		if vote != v.Vote {
+			err = tx.QueryRow(
+				"votes_update",
+				v.Vote,
+				v.Nickname,
+				v.Thread,
+			).Scan(&v.Thread)
+		}
+	}
+
 	if err != nil {
 		return err
 	}
+
+
 	return nil
 }
 
@@ -425,9 +449,23 @@ func (rep *Repository) Prepare() error {
 
 	_, err = rep.db.Prepare("votes_insert_into",
 		"INSERT INTO vote (vote, usr, thread) VALUES ($1 , $2, $3) "+
-			"ON CONFLICT (usr,thread) "+
-			"DO UPDATE SET vote = excluded.vote "+
 			"RETURNING thread",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("votes_update",
+		"UPDATE vote SET vote = $1 WHERE usr = $2 and thread = $3 "+
+			"RETURNING thread",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = rep.db.Prepare("votes_get_info",
+		"SELECT vote FROM vote " +
+			"WHERE usr = $1 and thread = $2 ",
 	)
 	if err != nil {
 		return err

@@ -204,34 +204,39 @@ EXECUTE procedure insert_into_forum_users();
 
 create or replace function insert_thread_votes()
     returns trigger as
-$update_thread_votes$
+$insert_thread_votes$
 declare
-    prev_vote int;
-    new_vote  int;
 begin
-    select vote
-    from vote
-    where thread = new.thread
-      and usr = new.usr
-    into prev_vote;
-    if not FOUND then
-        update thread set votes = (votes + new.vote) where id = new.thread;
-    else
-        if prev_vote != new.vote then
-            new_vote = 2 * new.vote;
-            update thread set votes = (votes + new_vote) where id = new.thread;
-        end if;
-    end if;
+    update thread set votes = (votes + new.vote) where id = new.thread;
     return new;
 end;
+$insert_thread_votes$ language plpgsql;
+
+create or replace function update_thread_votes()
+returns trigger as
+$update_thread_votes$
+    begin
+        if new.vote > 0 then
+            update thread set votes = (votes + 2) where id = new.thread;
+        else
+            update thread set votes = (votes - 2) where id = new.thread;
+        end if;
+        return new;
+    end;
 $update_thread_votes$ language plpgsql;
 
 
-create trigger update_thread_votes
+create trigger insert_thread_votes
     before insert
     on vote
     for each row
 execute procedure insert_thread_votes();
+
+create trigger update_thread_votes
+    before update
+    on vote
+    for each row
+execute procedure update_thread_votes();
 
 create or replace function update_forum_threads()
     returns trigger as
