@@ -30,6 +30,7 @@ drop table IF EXISTS forum_users CASCADE;
 
 create EXTENSION IF NOT EXISTS CITEXT;
 
+------------------------ USER ------------------------------------------
 create unlogged table usr
 (
     id       serial primary key,
@@ -43,6 +44,7 @@ create index index_usr_all on usr (nickname, fullname, email, about);
 cluster usr using index_usr_all;
 
 
+------------------------- FORUM ------------------------------------
 create unlogged table forum
 (
     id      serial primary key,
@@ -60,6 +62,7 @@ create index index_forum_slug_hash on forum using hash (slug);
 create index index_usr_fk on forum (usr);
 create index index_forum_all on forum (slug, title, usr, posts, threads);
 
+------------------------- THREAD ---------------------------------------
 create unlogged table thread
 (
     id      serial primary key,
@@ -84,7 +87,7 @@ create index index_thread_all on thread (title, message, created, slug, usr, for
 create index index_thread_usr_fk on thread (usr);
 create index index_thread_forum_fk on thread (forum);
 
-
+------------------------- POST --------------------------------------------------------------
 create unlogged table post
 (
     id       bigserial          primary key,
@@ -114,8 +117,7 @@ create index index_post_thread_created_id on post (thread, created, id);
 create index index_post_usr_fk on post (usr);
 create index index_post_forum_fk on post (forum);
 
-
-
+--------------------------- VOTE ------------------------------------------
 create unlogged table vote
 (
     id     serial           primary key,
@@ -132,6 +134,7 @@ create unique index vote_user_thread_unique on vote (usr, thread);
 create index index_vote_thread on vote (thread);
 
 
+------------------------------ FORUM USERS -----------------------------------
 create unlogged table forum_users
 (
     forum    citext collate "C" not null
@@ -143,6 +146,8 @@ create unlogged table forum_users
 create unique index index_forum_nickname on forum_users (forum, nickname);
 cluster forum_users using index_forum_nickname;
 
+
+---------------------- UPDATE PATH AND CHECK PARENT ---------------------------
 create or replace function updater()
     RETURNS trigger AS
 $BODY$
@@ -174,6 +179,7 @@ create trigger path_updater
     for each row
 EXECUTE procedure updater();
 
+--------------------------------------- Переписать в программу -------------------------------------
 create or replace function insert_into_forum_users()
     returns trigger as
 $insert_into_forum_users$
@@ -201,6 +207,7 @@ create trigger forum_user_insert_after_thread
 EXECUTE procedure insert_into_forum_users();
 
 
+-------------------------------- INSERT THREAD VOTES -----------------------
 create or replace function insert_thread_votes()
     returns trigger as
 $insert_thread_votes$
@@ -211,25 +218,26 @@ begin
 end;
 $insert_thread_votes$ language plpgsql;
 
-create or replace function update_thread_votes()
-returns trigger as
-$update_thread_votes$
-    begin
-        if new.vote > 0 then
-            update thread set votes = (votes + 2) where id = new.thread;
-        else
-            update thread set votes = (votes - 2) where id = new.thread;
-        end if;
-        return new;
-    end;
-$update_thread_votes$ language plpgsql;
-
-
 create trigger insert_thread_votes
     before insert
     on vote
     for each row
 execute procedure insert_thread_votes();
+
+
+------------------------------- UPDATE THREAD VOTES -------------------------
+create or replace function update_thread_votes()
+    returns trigger as
+$update_thread_votes$
+begin
+    if new.vote > 0 then
+        update thread set votes = (votes + 2) where id = new.thread;
+    else
+        update thread set votes = (votes - 2) where id = new.thread;
+    end if;
+    return new;
+end;
+$update_thread_votes$ language plpgsql;
 
 create trigger update_thread_votes
     before update
@@ -237,6 +245,8 @@ create trigger update_thread_votes
     for each row
 execute procedure update_thread_votes();
 
+
+------------------------------- UPDATE FORUM THREADS -------------------
 create or replace function update_forum_threads()
     returns trigger as
 $update_forum_threads$
