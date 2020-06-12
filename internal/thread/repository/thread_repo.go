@@ -20,14 +20,19 @@ func NewThreadRepository(db *pgx.ConnPool) thread.Repository {
 	}
 }
 
-func (rep *Repository) InsertIntoForumUsers (forum, nickname string) {
-	_, err := rep.db.Exec(
-		"forum_users_insert_into",
-		forum,
-		nickname,
-	)
+func (rep *Repository) InsertIntoForumUsers (tx *pgx.Tx, forum, nickname string) {
+	var buffer string
+
+	err := tx.QueryRow("get_forum_user", forum, nickname).Scan(&buffer)
 	if err != nil {
-		logrus.Error("Insert into forum users " + err.Error())
+		_, err = rep.db.Exec(
+			"forum_users_insert_into",
+			forum,
+			nickname,
+		)
+		if err != nil {
+			logrus.Error("Insert into forum users " + err.Error())
+		}
 	}
 }
 
@@ -55,7 +60,7 @@ func (rep *Repository) InsertInto(tx *pgx.Tx, th *models.Thread) error {
 		return err
 	}
 
-	rep.InsertIntoForumUsers(th.Forum, th.Author)
+	rep.InsertIntoForumUsers(tx, th.Forum, th.Author)
 
 	return nil
 }
@@ -361,7 +366,7 @@ func (rep *Repository) Prepare() error {
 
 	//TODO проверка на существование записи в таблице forum users
 	_, err = rep.db.Prepare("get_forum_user",
-		"SELECT forum, nickname FROM forum_users " +
+		"SELECT nickname FROM forum_users " +
 			"WHERE forum = $1 AND nickname = $2 ",
 	)
 	if err != nil {
@@ -370,8 +375,7 @@ func (rep *Repository) Prepare() error {
 
 	_, err = rep.db.Prepare("forum_users_insert_into",
 		"INSERT INTO forum_users (forum, nickname) "+
-			"VALUES ($1,$2) "+
-			"ON CONFLICT (forum,nickname) DO NOTHING ",
+			"VALUES ($1,$2) ",
 	)
 	if err != nil {
 		return err
