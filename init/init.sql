@@ -81,7 +81,7 @@ create index index_thread_forum_created on thread (forum, created);
 create index index_thread_id_and_slug on thread (CITEXT(id), slug); -- Переписать запрос
 create index index_thread_slug on thread (slug);
 create index index_thread_slug_hash on thread using hash (slug);
-create index index_thread_all on thread (usr, forum, message, title);
+create index index_thread_all on thread (title, message, created, slug, usr, forum, votes);
 create index index_thread_usr_fk on thread (usr);
 create index index_thread_forum_fk on thread (forum);
 

@@ -227,14 +227,8 @@ func (rep *Repository) Update(tx *pgx.Tx, th *models.Thread) error {
 			&slug,
 			&th.Author,
 			&th.Forum,
+			&votes,
 		)
-		e := tx.QueryRow(
-			"votes_get",
-			th.Id,
-		).Scan(&votes)
-		if e != nil {
-			logrus.Error("SQL", err)
-		}
 	case th.Message == "" && th.Title != "":
 		err = tx.QueryRow("thread_update_title",
 			th.Title,
@@ -246,14 +240,8 @@ func (rep *Repository) Update(tx *pgx.Tx, th *models.Thread) error {
 			&slug,
 			&th.Author,
 			&th.Forum,
+			&votes,
 		)
-		e := tx.QueryRow(
-			"votes_get",
-			th.Id,
-		).Scan(&votes)
-		if e != nil {
-			logrus.Error("SQL", err)
-		}
 	case th.Message != "" && th.Title != "":
 		err = tx.QueryRow("thread_update_all",
 			th.Message,
@@ -266,14 +254,8 @@ func (rep *Repository) Update(tx *pgx.Tx, th *models.Thread) error {
 			&slug,
 			&th.Author,
 			&th.Forum,
+			&votes,
 		)
-		e := tx.QueryRow(
-			"votes_get",
-			th.Id,
-		).Scan(&votes)
-		if e != nil {
-			logrus.Error("SQL", err)
-		}
 	}
 	if err != nil {
 		return err
@@ -472,8 +454,8 @@ func (rep *Repository) Prepare() error {
 	}
 
 	_, err = rep.db.Prepare("votes_get",
-		"SELECT SUM(v.vote) from vote v "+
-			"WHERE v.thread = $1",
+		"SELECT votes from thread "+
+			"WHERE id = $1",
 	)
 	if err != nil {
 		return err
@@ -484,7 +466,7 @@ func (rep *Repository) Prepare() error {
 			"message = $1, "+
 			"title = $2 "+
 			"WHERE id::citext = $3 or slug = $3 "+
-			"RETURNING id, title, message, created, slug, usr, forum",
+			"RETURNING id, title, message, created, slug, usr, forum, votes",
 	)
 	if err != nil {
 		return err
@@ -494,7 +476,7 @@ func (rep *Repository) Prepare() error {
 		"UPDATE thread SET "+
 			"message = $1 "+
 			"WHERE id::citext = $2 or slug = $2 "+
-			"RETURNING id, title, message, created, slug, usr, forum",
+			"RETURNING id, title, message, created, slug, usr, forum, votes",
 	)
 	if err != nil {
 		return err
@@ -504,7 +486,7 @@ func (rep *Repository) Prepare() error {
 		"UPDATE thread SET "+
 			"title = $1 "+
 			"WHERE id::citext = $2 or slug = $2 "+
-			"RETURNING id, title, message, created, slug, usr, forum",
+			"RETURNING id, title, message, created, slug, usr, forum, votes",
 	)
 	if err != nil {
 		return err
