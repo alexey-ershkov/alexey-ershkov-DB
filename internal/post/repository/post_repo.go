@@ -87,13 +87,6 @@ func (rep *PostRepository) CreateTx() (*pgx.Tx, error) {
 	return tx, nil
 }
 
-func (rep *PostRepository) CommitTx(tx *pgx.Tx) error {
-	if err := tx.Commit(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (rep *PostRepository) Prepare() error {
 	_, err := rep.db.Prepare("post_insert_into",
 		"INSERT INTO post (usr, message,  parent, thread, forum, created) "+

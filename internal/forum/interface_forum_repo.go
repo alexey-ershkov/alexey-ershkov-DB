@@ -11,6 +11,5 @@ type Repository interface {
 	GetThreads(tx *pgx.Tx, forum *models.Forum, desc, limit, since string) ([]models.Thread, error)
 	GetUsers(tx *pgx.Tx, forum *models.Forum, desc, limit, since string) ([]models.User, error)
 	CreateTx() (*pgx.Tx, error)
-	CommitTx(tx *pgx.Tx) error
 	Prepare() error
 }

@@ -14,6 +14,5 @@ type Repository interface {
 	Update(tx *pgx.Tx, thread *models.Thread) error
 	GetPosts(tx *pgx.Tx, thread *models.Thread, desc, sort, limit, since string) ([]models.Post, error)
 	CreateTx() (*pgx.Tx, error)
-	CommitTx(tx *pgx.Tx) error
 	Prepare() error
 }

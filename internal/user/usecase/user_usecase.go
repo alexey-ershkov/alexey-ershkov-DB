@@ -18,49 +18,58 @@ func NewUserUsecase(r user.Repository) user.Usecase {
 
 func (uc *UserUsecase) CreateUser(u *models.User) ([]models.User, error) {
 	tx, err := uc.Repo.CreateTx()
+	defer func() {
+		if err == nil {
+			_ = tx.Commit()
+		} else {
+			_ = tx.Rollback()
+		}
+	}()
 	if err != nil {
 		return nil, err
 	}
 
 	err = uc.Repo.InsertInto(tx, u)
 	if err != nil {
-		//logrus.Warn("User already exist")
-		users, err := uc.Repo.GetByNicknameOrEmail(tx, u)
+		users, e := uc.Repo.GetByNicknameOrEmail(tx, u)
+		err = e
 		tools.HandleError(err)
 		return users, tools.UserExist
 	}
 
-	err = uc.Repo.CommitTx(tx)
-	if err != nil {
-		return nil, err
-	}
 	return nil, nil
 }
 
 func (uc *UserUsecase) GetUser(u *models.User) error {
 	tx, err := uc.Repo.CreateTx()
+	defer func() {
+		if err == nil {
+			_ = tx.Commit()
+		} else {
+			_ = tx.Rollback()
+		}
+	}()
 	if err != nil {
 		return err
 	}
 
 	err = uc.Repo.GetByNickname(tx, u)
 	if err != nil {
-		err = uc.Repo.CommitTx(tx)
-		if err != nil {
-			return err
-		}
 		return tools.UserNotExist
 	}
 
-	err = uc.Repo.CommitTx(tx)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
 func (uc *UserUsecase) UpdateUser(u *models.User) error {
 	tx, err := uc.Repo.CreateTx()
+	defer func() {
+		if err == nil {
+			_ = tx.Commit()
+		} else {
+			_ = tx.Rollback()
+		}
+	}()
 	if err != nil {
 		return err
 	}
@@ -82,10 +91,6 @@ func (uc *UserUsecase) UpdateUser(u *models.User) error {
 		return tools.UserNotUpdated
 	}
 
-	err = uc.Repo.CommitTx(tx)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -99,6 +104,13 @@ func (uc *UserUsecase) DeleteAll() error {
 
 func (uc *UserUsecase) GetStatus(s *models.Status) error {
 	tx, err := uc.Repo.CreateTx()
+	defer func() {
+		if err == nil {
+			_ = tx.Commit()
+		} else {
+			_ = tx.Rollback()
+		}
+	}()
 	if err != nil {
 		return err
 	}
@@ -108,9 +120,5 @@ func (uc *UserUsecase) GetStatus(s *models.Status) error {
 		return err
 	}
 
-	err = uc.Repo.CommitTx(tx)
-	if err != nil {
-		return err
-	}
 	return nil
 }

@@ -57,24 +57,20 @@ func (tUC *Usecase) CreateThread(th *models.Thread) error {
 func (tUC *Usecase) GetThreadInfo(th *models.Thread) error {
 
 	tx, err := tUC.repo.CreateTx()
-	if err != nil {
-		return err
-	}
-
-	if err := tUC.repo.GetBySlugOrId(tx, th); err != nil {
-		//logrus.Warn("thread doesn't exist")
-
-		err = tUC.repo.CommitTx(tx)
-		if err != nil {
-			return err
+	defer func() {
+		if err == nil {
+			_ = tx.Commit()
+		} else {
+			_ = tx.Rollback()
 		}
-
-		return tools.ThreadNotExist
-	}
-
-	err = tUC.repo.CommitTx(tx)
+	}()
 	if err != nil {
 		return err
+	}
+
+	err = tUC.repo.GetBySlugOrId(tx, th)
+	if err != nil {
+		return tools.ThreadNotExist
 	}
 
 	return nil
@@ -82,30 +78,25 @@ func (tUC *Usecase) GetThreadInfo(th *models.Thread) error {
 
 func (tUC *Usecase) CreateVote(th *models.Thread, v *models.Vote) error {
 	tx, err := tUC.repo.CreateTx()
+	defer func() {
+		if err == nil {
+			_ = tx.Commit()
+		} else {
+			_ = tx.Rollback()
+		}
+	}()
 	if err != nil {
 		return err
 	}
 
-	if err := tUC.repo.GetBySlugOrId(tx, th); err != nil {
-		//logrus.Warn("thread doesn't exist")
-
-		err = tUC.repo.CommitTx(tx)
-		if err != nil {
-			return err
-		}
-
+	err = tUC.repo.GetBySlugOrId(tx, th)
+	if err != nil {
 		return tools.ThreadNotExist
 	}
 	v.Thread = th.Id
-	if err := tUC.repo.InsertIntoVotes(tx, th,v); err != nil {
-		//logrus.Warn("user doesn't exist")
-
-		return tools.UserNotExist
-	}
-
-	err = tUC.repo.CommitTx(tx)
+	err = tUC.repo.InsertIntoVotes(tx, th,v)
 	if err != nil {
-		return err
+		return tools.UserNotExist
 	}
 
 	return nil
@@ -113,24 +104,20 @@ func (tUC *Usecase) CreateVote(th *models.Thread, v *models.Vote) error {
 
 func (tUC *Usecase) UpdateThread(th *models.Thread) error {
 	tx, err := tUC.repo.CreateTx()
+	defer func() {
+		if err == nil {
+			_ = tx.Commit()
+		} else {
+			_ = tx.Rollback()
+		}
+	}()
 	if err != nil {
 		return err
 	}
 
 	err = tUC.repo.Update(tx, th)
 	if err != nil {
-
-		err = tUC.repo.CommitTx(tx)
-		if err != nil {
-			return err
-		}
-
 		return tools.ThreadNotExist
-	}
-
-	err = tUC.repo.CommitTx(tx)
-	if err != nil {
-		return err
 	}
 
 	return nil
@@ -138,34 +125,25 @@ func (tUC *Usecase) UpdateThread(th *models.Thread) error {
 
 func (tUC *Usecase) GetThreadPosts(th *models.Thread, desc, sort, limit, since string) ([]models.Post, error) {
 	tx, err := tUC.repo.CreateTx()
+	defer func() {
+		if err == nil {
+			_ = tx.Commit()
+		} else {
+			_ = tx.Rollback()
+		}
+	}()
 	if err != nil {
 		return nil, err
 	}
 
-	if err := tUC.repo.GetBySlugOrId(tx, th); err != nil {
-
-		err = tUC.repo.CommitTx(tx)
-		if err != nil {
-			return nil, err
-		}
-
+	err = tUC.repo.GetBySlugOrId(tx, th)
+	if err != nil {
 		return nil, tools.ThreadNotExist
 	}
-	posts, err := tUC.repo.GetPosts(tx, th, desc, sort, limit, since)
-	if err != nil {
-
-		err = tUC.repo.CommitTx(tx)
-		if err != nil {
-			return nil, err
-		}
-
-		return nil, err
-	}
-
-	err = tUC.repo.CommitTx(tx)
+	posts, e := tUC.repo.GetPosts(tx, th, desc, sort, limit, since)
+	err = e
 	if err != nil {
 		return nil, err
 	}
-
 	return posts, nil
 }

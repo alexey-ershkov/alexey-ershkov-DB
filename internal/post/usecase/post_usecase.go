@@ -50,27 +50,21 @@ func (pUC *PostUsecase) CreatePosts(p []*models.Post, th *models.Thread) error {
 }
 
 func (pUC *PostUsecase) GetPost(p *models.Post) error {
-
 	tx, err := pUC.pRepo.CreateTx()
-	if err != nil {
-		return err
-	}
-
-	if err := pUC.pRepo.GetById(tx, p); err != nil {
-		//logrus.Warn("post not exist")
-
-		err = pUC.pRepo.CommitTx(tx)
-		if err != nil {
-			return err
+	defer func() {
+		if err == nil {
+			_ = tx.Commit()
+		} else {
+			_ = tx.Rollback()
 		}
-
-		return tools.PostNotExist
-	}
-
-
-	err = pUC.pRepo.CommitTx(tx)
+	}()
 	if err != nil {
 		return err
+	}
+
+	err = pUC.pRepo.GetById(tx, p)
+	if err != nil {
+		return tools.PostNotExist
 	}
 
 	return nil
@@ -79,30 +73,27 @@ func (pUC *PostUsecase) GetPost(p *models.Post) error {
 func (pUC *PostUsecase) UpdatePost(p *models.Post) error {
 
 	tx, err := pUC.pRepo.CreateTx()
+	defer func() {
+		if err == nil {
+			_ = tx.Commit()
+		} else {
+			_ = tx.Rollback()
+		}
+	}()
 	if err != nil {
 		return err
 	}
 
 	message := p.Message
-	if err := pUC.pRepo.GetById(tx, p); err != nil {
+	err = pUC.pRepo.GetById(tx, p)
+	if err != nil {
 		return tools.PostNotExist
 	}
 	if message != "" && message != p.Message {
 		p.Message = message
 		if err := pUC.pRepo.Update(tx, p); err != nil {
-
-			err = pUC.pRepo.CommitTx(tx)
-			if err != nil {
-				return err
-			}
-
 			return tools.PostNotExist
 		}
-	}
-
-	err = pUC.pRepo.CommitTx(tx)
-	if err != nil {
-		return err
 	}
 
 	return nil

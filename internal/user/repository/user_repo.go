@@ -152,12 +152,6 @@ func (rep *Repository) CreateTx() (*pgx.Tx, error) {
 	return tx, nil
 }
 
-func (rep *Repository) CommitTx(tx *pgx.Tx) error {
-	if err := tx.Commit(); err != nil {
-		return err
-	}
-	return nil
-}
 
 func (rep *Repository) Prepare() error {
 
