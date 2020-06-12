@@ -95,7 +95,7 @@ func main() {
 	}
 
 	uUC := uUcase.NewUserUsecase(uRep)
-	fUC := fUUcase.NewForumUsecase(fRep)
+	fUC := fUUcase.NewForumUsecase(fRep, uRep)
 	thUC := thUcase.NewThreadUsecase(thRep)
 	pUC := pUcase.NewPostUsecase(pRep, thRep, uRep)
 

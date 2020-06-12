@@ -17,6 +17,7 @@ func NewForumRepository(db *pgx.ConnPool) forum.Repository {
 }
 
 func (rep *Repository) InsertInto(tx *pgx.Tx, f *models.Forum) error {
+
 	row := tx.QueryRow(
 		"forum_insert_into",
 		f.Slug,
@@ -156,7 +157,6 @@ func (rep *Repository) Prepare() error {
 	_, err := rep.db.Prepare("forum_insert_into",
 		"INSERT INTO forum (slug, title, usr) "+
 			"VALUES ($1, $2, $3) "+
-			"ON CONFLICT DO NOTHING "+
 			"RETURNING title",
 	)
 	if err != nil {
@@ -164,9 +164,8 @@ func (rep *Repository) Prepare() error {
 	}
 
 	_, err = rep.db.Prepare("forum_get_by_slug",
-		"SELECT f.posts, f.slug, f.threads,f.title, u.nickname "+
+		"SELECT f.posts, f.slug, f.threads,f.title, f.usr "+
 			"FROM forum f "+
-			"JOIN usr u on f.usr = u.nickname "+
 			"WHERE f.slug = $1 ",
 	)
 	if err != nil {
@@ -176,7 +175,7 @@ func (rep *Repository) Prepare() error {
 	_, err = rep.db.Prepare("forum_get_threads_desc",
 		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, t.votes FROM thread t "+
 			"JOIN forum f on t.forum = f.slug "+
-			"WHERE f.slug = $1 AND t.created <=  $2::timestamptz "+
+			"WHERE t.forum = $1 AND t.created <=  $2::timestamptz "+
 			"ORDER BY t.created DESC ",
 	)
 	if err != nil {
@@ -186,7 +185,7 @@ func (rep *Repository) Prepare() error {
 	_, err = rep.db.Prepare("forum_get_threads_desc_with_limit",
 		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, t.votes FROM thread t "+
 			"JOIN forum f on t.forum = f.slug "+
-			"WHERE f.slug = $1 AND t.created <=  $2::timestamptz "+
+			"WHERE t.forum = $1 AND t.created <=  $2::timestamptz "+
 			"ORDER BY t.created DESC "+
 			"LIMIT $3",
 	)
@@ -197,7 +196,7 @@ func (rep *Repository) Prepare() error {
 	_, err = rep.db.Prepare("forum_get_threads_asc",
 		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, t.votes FROM thread t "+
 			"JOIN forum f on t.forum = f.slug "+
-			"WHERE f.slug = $1 AND t.created >=  $2::timestamptz "+
+			"WHERE t.forum = $1 AND t.created >=  $2::timestamptz "+
 			"ORDER BY t.created ",
 	)
 	if err != nil {
@@ -208,7 +207,7 @@ func (rep *Repository) Prepare() error {
 	_, err = rep.db.Prepare("forum_get_threads_asc_with_limit",
 		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, f.slug, t.votes FROM thread t "+
 			"JOIN forum f on t.forum = f.slug "+
-			"WHERE f.slug = $1 AND t.created >=  $2::timestamptz "+
+			"WHERE t.forum = $1 AND t.created >=  $2::timestamptz "+
 			"ORDER BY t.created "+
 			"LIMIT $3 ",
 	)

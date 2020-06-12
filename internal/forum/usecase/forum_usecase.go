@@ -4,48 +4,50 @@ import (
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/forum"
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/models"
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/tools"
+	"alexey-ershkov/alexey-ershkov-DB.git/internal/user"
 )
 
 type Usecase struct {
 	repo forum.Repository
+	uRep user.Repository
 }
 
-func NewForumUsecase(r forum.Repository) forum.Usecase {
+func NewForumUsecase(r forum.Repository, ur user.Repository) forum.Usecase {
 	return &Usecase{
 		repo: r,
+		uRep: ur,
 	}
 }
 
 func (uc *Usecase) CreateForum(f *models.Forum) error {
 	tx, err := uc.repo.CreateTx()
+	defer func() {
+		if err == nil {
+			_ = tx.Commit()
+		} else {
+			_ = tx.Rollback()
+		}
+	}()
 	if err != nil {
 		return err
+	}
+
+	u := &models.User{}
+	u.Nickname = f.User
+	err = uc.uRep.GetByNickname(tx, u)
+	if err != nil {
+
+		return tools.UserNotExist
+	}
+
+	f.User = u.Nickname
+
+	err = uc.repo.GetBySlug(tx, f)
+	if err == nil {
+		return tools.ForumExist
 	}
 
 	err = uc.repo.InsertInto(tx, f)
-	if err != nil {
-		if err := uc.repo.GetBySlug(tx, f); err != nil {
-
-			return tools.UserNotExist
-		} else {
-			err = uc.repo.CommitTx(tx)
-			if err != nil {
-				return err
-			}
-
-			return tools.ForumExist
-		}
-	}
-	if err := uc.repo.GetBySlug(tx, f); err != nil {
-		err = uc.repo.CommitTx(tx)
-		if err != nil {
-			return err
-		}
-
-		return err
-	}
-
-	err = uc.repo.CommitTx(tx)
 	if err != nil {
 		return err
 	}
