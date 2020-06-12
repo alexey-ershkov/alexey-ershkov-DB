@@ -43,7 +43,7 @@ func (tUC *Usecase) CreateThread(th *models.Thread) error {
 
 	err = tUC.repo.InsertInto(tx, th);
 	if err != nil {
-		err = tUC.repo.GetBySlug(tx, th);
+		err = tUC.repo.GetBySlugOrId(tx, th);
 		if err != nil {
 			return tools.UserNotExist
 		}
@@ -97,12 +97,11 @@ func (tUC *Usecase) CreateVote(th *models.Thread, v *models.Vote) error {
 		return tools.ThreadNotExist
 	}
 	v.Thread = th.Id
-	if err := tUC.repo.InsertIntoVotes(tx, v); err != nil {
+	if err := tUC.repo.InsertIntoVotes(tx, th,v); err != nil {
 		//logrus.Warn("user doesn't exist")
 
 		return tools.UserNotExist
 	}
-	_ = tUC.repo.GetVotes(tx, th, v)
 
 	err = tUC.repo.CommitTx(tx)
 	if err != nil {

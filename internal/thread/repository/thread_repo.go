@@ -5,7 +5,7 @@ import (
 	"alexey-ershkov/alexey-ershkov-DB.git/internal/thread"
 	"database/sql"
 	"github.com/jackc/pgx"
-	"github.com/sirupsen/logrus"
+	"strconv"
 	"time"
 )
 
@@ -69,6 +69,7 @@ func (rep *Repository) GetBySlug(tx *pgx.Tx, th *models.Thread) error {
 		&slug,
 		&th.Author,
 		&th.Forum,
+		&th.Votes,
 	); err != nil {
 		return err
 	}
@@ -83,13 +84,15 @@ func (rep *Repository) GetBySlug(tx *pgx.Tx, th *models.Thread) error {
 	return nil
 }
 
-func (rep *Repository) GetBySlugOrId(tx *pgx.Tx, th *models.Thread) error {
-	slug := sql.NullString{}
+func (rep *Repository) GetById(tx *pgx.Tx, th *models.Thread) error {
+
+	row := tx.QueryRow(
+		"thread_get_by_id",
+		th.Id,
+	)
 	created := sql.NullTime{}
-	votes := sql.NullInt64{}
-	err := tx.QueryRow(
-		"thread_get_by_slug_or_id",
-		th.Slug).Scan(
+	slug := sql.NullString{}
+	if err := row.Scan(
 		&th.Id,
 		&th.Title,
 		&th.Message,
@@ -97,9 +100,8 @@ func (rep *Repository) GetBySlugOrId(tx *pgx.Tx, th *models.Thread) error {
 		&slug,
 		&th.Author,
 		&th.Forum,
-		&votes,
-	)
-	if err != nil {
+		&th.Votes,
+	); err != nil {
 		return err
 	}
 	if created.Valid {
@@ -110,13 +112,32 @@ func (rep *Repository) GetBySlugOrId(tx *pgx.Tx, th *models.Thread) error {
 	} else {
 		th.Slug = ""
 	}
-	if votes.Valid {
-		th.Votes = votes.Int64
-	}
+
 	return nil
 }
 
-func (rep *Repository) InsertIntoVotes(tx *pgx.Tx, v *models.Vote) error {
+func (rep *Repository) GetBySlugOrId(tx *pgx.Tx, th *models.Thread) error {
+
+	Id, err := strconv.ParseInt(th.Slug, 10, 64)
+	if err == nil {
+		th.Id = Id
+		th.Slug = ""
+	}
+
+	if th.Slug != "" {
+		err = rep.GetBySlug(tx, th)
+	} else {
+		err = rep.GetById(tx, th)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (rep *Repository) InsertIntoVotes(tx *pgx.Tx, th *models.Thread, v *models.Vote) error {
 	var vote int32
 	vote = 0
 
@@ -134,6 +155,7 @@ func (rep *Repository) InsertIntoVotes(tx *pgx.Tx, v *models.Vote) error {
 			v.Nickname,
 			v.Thread,
 		).Scan(&v.Thread)
+		th.Votes += int64(v.Vote)
 	} else {
 		if vote != v.Vote {
 			err = tx.QueryRow(
@@ -142,6 +164,7 @@ func (rep *Repository) InsertIntoVotes(tx *pgx.Tx, v *models.Vote) error {
 				v.Nickname,
 				v.Thread,
 			).Scan(&v.Thread)
+			th.Votes += 2*int64(v.Vote)
 		}
 	}
 
@@ -153,20 +176,6 @@ func (rep *Repository) InsertIntoVotes(tx *pgx.Tx, v *models.Vote) error {
 	return nil
 }
 
-func (rep *Repository) GetVotes(tx *pgx.Tx, th *models.Thread, v *models.Vote) error {
-	votes := sql.NullInt64{}
-	err := tx.QueryRow(
-		"votes_get",
-		v.Thread,
-	).Scan(&votes)
-	if err != nil {
-		logrus.Error("SQL", err)
-	}
-	if votes.Valid {
-		th.Votes = votes.Int64
-	}
-	return nil
-}
 
 func (rep *Repository) Update(tx *pgx.Tx, th *models.Thread) error {
 	slug := sql.NullString{}
@@ -175,17 +184,7 @@ func (rep *Repository) Update(tx *pgx.Tx, th *models.Thread) error {
 	var err error
 	switch true {
 	case th.Message == "" && th.Title == "":
-		err = tx.QueryRow("thread_get_by_slug_or_id",
-			th.Slug).Scan(
-			&th.Id,
-			&th.Title,
-			&th.Message,
-			&created,
-			&slug,
-			&th.Author,
-			&th.Forum,
-			&votes,
-		)
+		err = rep.GetBySlugOrId(tx, th)
 	case th.Message != "" && th.Title == "":
 		err = tx.QueryRow("thread_update_message",
 			th.Message,
@@ -370,7 +369,7 @@ func (rep *Repository) Prepare() error {
 	}
 
 	_, err = rep.db.Prepare("thread_get_by_slug",
-		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, t.forum  "+
+		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, t.forum, t.votes  "+
 			"FROM thread t "+
 			"WHERE t.slug = $1",
 	)
@@ -378,10 +377,10 @@ func (rep *Repository) Prepare() error {
 		return err
 	}
 
-	_, err = rep.db.Prepare("thread_get_by_slug_or_id",
+	_, err = rep.db.Prepare("thread_get_by_id",
 		"SELECT t.id, t.title, t.message, t.created, t.slug, t.usr, t.forum, t.votes "+
 			"FROM thread t "+
-			"WHERE t.id::citext = $1 OR t.slug  = $1 ",
+			"WHERE t.id = $1 ",
 	)
 	if err != nil {
 		return err
@@ -411,13 +410,6 @@ func (rep *Repository) Prepare() error {
 		return err
 	}
 
-	_, err = rep.db.Prepare("votes_get",
-		"SELECT votes from thread "+
-			"WHERE id = $1",
-	)
-	if err != nil {
-		return err
-	}
 
 	_, err = rep.db.Prepare("thread_update_all",
 		"UPDATE thread SET "+
