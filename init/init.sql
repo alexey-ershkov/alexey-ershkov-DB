@@ -1,15 +1,3 @@
-ALTER SYSTEM SET checkpoint_completion_target = '0.9';
-ALTER SYSTEM SET wal_buffers = '6912kB';
-ALTER SYSTEM SET default_statistics_target = '100';
-ALTER SYSTEM SET random_page_cost = '1.1';
-ALTER SYSTEM SET effective_io_concurrency = '200';
-ALTER SYSTEM SET seq_page_cost = '0.1';
-ALTER SYSTEM SET random_page_cost = '0.1';
-ALTER SYSTEM SET max_worker_processes = '4';
-ALTER SYSTEM SET max_parallel_workers_per_gather = '2';
-ALTER SYSTEM SET max_parallel_workers = '4';
-ALTER SYSTEM SET max_parallel_maintenance_workers = '2';
-
 drop trigger IF EXISTS path_updater ON post;
 drop trigger if exists forum_users_clear on forum_users;
 drop trigger if exists forum_user_insert_after_thread on thread;
@@ -40,8 +28,6 @@ create unlogged table usr
     about    text
 );
 
-create index index_usr_all on usr (nickname, fullname, email, about);
-cluster usr using index_usr_all;
 
 
 ------------------------- FORUM ------------------------------------
@@ -57,10 +43,7 @@ create unlogged table forum
     posts   bigint default 0
 );
 
-create index index_forum_slug_hash on forum using hash (slug);
--- cluster forum using index_forum_slug_hash;
-create index index_usr_fk on forum (usr);
-create index index_forum_all on forum (slug, title, usr, posts, threads);
+
 
 ------------------------- THREAD ---------------------------------------
 create unlogged table thread
@@ -78,14 +61,6 @@ create unlogged table thread
         references forum (slug)
             on delete cascade
 );
-
-create index index_thread_forum_created on thread (forum, created);
--- cluster thread using index_thread_forum_created;
-create index index_thread_slug on thread (slug);
-create index index_thread_slug_hash on thread using hash (slug);
-create index index_thread_all on thread (title, message, created, slug, usr, forum, votes);
-create index index_thread_usr_fk on thread (usr);
-create index index_thread_forum_fk on thread (forum);
 
 ------------------------- POST --------------------------------------------------------------
 create unlogged table post
@@ -107,15 +82,7 @@ create unlogged table post
     path     bigint[]
 );
 
-create index index_post_thread_id on post (thread, id);
-create index index_post_thread_path on post (thread, path);
-create index index_post_thread_parent_path on post (thread, parent, path);
-create index index_post_path1_path on post ((path[1]), path);
--- cluster post using index_post_path1_path;
-create index index_post_thread_created_id on post (thread, created, id);
 
-create index index_post_usr_fk on post (usr);
-create index index_post_forum_fk on post (forum);
 
 --------------------------- VOTE ------------------------------------------
 create unlogged table vote
@@ -130,9 +97,6 @@ create unlogged table vote
             on delete cascade
 );
 
-create unique index vote_user_thread_unique on vote (usr, thread);
-create index index_vote_thread on vote (thread);
-
 
 ------------------------------ FORUM USERS -----------------------------------
 create unlogged table forum_users
@@ -143,8 +107,7 @@ create unlogged table forum_users
             references usr (nickname) on delete cascade
 );
 
-create unique index index_forum_nickname on forum_users (forum, nickname);
-cluster forum_users using index_forum_nickname;
+
 
 
 ---------------------- UPDATE PATH AND CHECK PARENT ---------------------------
