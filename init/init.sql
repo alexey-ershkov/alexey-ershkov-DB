@@ -41,8 +41,7 @@ create unlogged table forum
             on update cascade on delete cascade
 );
 
-create index index_forum_slug on forum (slug);
-create index index_forum_slug_hash on forum using hash (slug);
+
 create index index_usr_fk on forum (usr);
 
 
@@ -65,9 +64,7 @@ create unlogged table thread
             on update cascade on delete cascade
 );
 
-create index index_thread_id_and_slug on thread (CITEXT(id),slug);
-create index index_thread_id on thread (id);
-create index index_thread_all on thread (usr, forum, message, title);
+
 create index index_thread_usr_fk on thread (usr);
 create index index_thread_forum_fk on thread (forum);
 
@@ -99,12 +96,6 @@ create unlogged table post
     path     bigint[]
 );
 
-create index index_post_thread_path on post (thread, path);
-create index index_post_path on post (path);
-create index index_post_thread_parent_path on post (thread,parent,path);
-create index index_post_path1_path on post ((path[1]), path);
-create index index_post_thread_id_created on post (thread, id, created);
-create index index_post_thread_created_id on post (thread, created, id);
 
 create index index_post_usr_fk on post (usr);
 create index index_post_forum_fk on post(forum);
@@ -129,8 +120,6 @@ create unlogged table vote
         unique (usr, thread)
 );
 
--- потом убрать, когда будет денормализация
-create index index_vote_thread on vote (thread);
 
 
 
@@ -147,14 +136,6 @@ create unlogged table forum_users
             on update cascade on delete cascade
 
 );
-
-create unique index index_forum_nickname on forum_users (forum, nickname);
-create index index_forum_users_all on forum_users (id,forum,nickname);
-
-
-create index index_forum_user on forum_users (forum);
-create index index_forum_user_nickname on forum_users (forum,nickname);
-cluster forum_users using index_forum_user_nickname;
 
 create or replace function updater()
     RETURNS trigger AS

@@ -58,7 +58,18 @@ func main() {
 
 
 
-	dbConn, err := pgx.Connect(dbConf)
+	dbPoolConf := pgx.ConnPoolConfig{
+		ConnConfig:     dbConf,
+		MaxConnections: 100,
+		AfterConnect:   nil,
+		AcquireTimeout: 0,
+	}
+
+	dbConn, err := pgx.NewConnPool(dbPoolConf)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+
 
 	if err != nil {
 		logrus.Fatal(err)

@@ -10,10 +10,10 @@ import (
 )
 
 type Repository struct {
-	db *pgx.Conn
+	db *pgx.ConnPool
 }
 
-func NewThreadRepository(db *pgx.Conn) thread.Repository {
+func NewThreadRepository(db *pgx.ConnPool) thread.Repository {
 	return &Repository{
 		db: db,
 	}
