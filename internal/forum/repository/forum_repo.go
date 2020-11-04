@@ -9,10 +9,10 @@ import (
 )
 
 type Repository struct {
-	db *pgx.ConnPool
+	db *pgx.Conn
 }
 
-func NewForumRepository(db *pgx.ConnPool) forum.Repository {
+func NewForumRepository(db *pgx.Conn) forum.Repository {
 	return &Repository{db: db}
 }
 

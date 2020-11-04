@@ -8,10 +8,10 @@ import (
 )
 
 type Repository struct {
-	db *pgx.ConnPool
+	db *pgx.Conn
 }
 
-func NewUserRepo(db *pgx.ConnPool) user.Repository {
+func NewUserRepo(db *pgx.Conn) user.Repository {
 	return &Repository{
 		db: db,
 	}

@@ -4,12 +4,10 @@ import (
 	fHandler "alexey-ershkov/alexey-ershkov-DB.git/internal/forum/delivery"
 	fRepo "alexey-ershkov/alexey-ershkov-DB.git/internal/forum/repository"
 	fUUcase "alexey-ershkov/alexey-ershkov-DB.git/internal/forum/usecase"
-	"net/http"
-	"time"
-
 	thHandler "alexey-ershkov/alexey-ershkov-DB.git/internal/thread/delivery"
 	thRepo "alexey-ershkov/alexey-ershkov-DB.git/internal/thread/repository"
 	thUcase "alexey-ershkov/alexey-ershkov-DB.git/internal/thread/usecase"
+	"net/http"
 
 	uHandler "alexey-ershkov/alexey-ershkov-DB.git/internal/user/delivery"
 	uRepo "alexey-ershkov/alexey-ershkov-DB.git/internal/user/repository"
@@ -58,19 +56,14 @@ func main() {
 		PreferSimpleProtocol: false,
 	}
 
-	dbPoolConf := pgx.ConnPoolConfig{
-		ConnConfig:     dbConf,
-		MaxConnections: 100,
-		AfterConnect:   nil,
-		AcquireTimeout: 0,
-	}
 
-	dbConn, err := pgx.NewConnPool(dbPoolConf)
+
+	dbConn, err := pgx.Connect(dbConf)
+
 	if err != nil {
 		logrus.Fatal(err)
 	}
 
-	StatsLog(dbConn)
 
 	uRep := uRepo.NewUserRepo(dbConn)
 	fRep := fRepo.NewForumRepository(dbConn)
@@ -107,22 +100,4 @@ func main() {
 	logrus.Fatal(server.Start(":5000"))
 }
 
-func StatsLog(conn *pgx.ConnPool) {
-	ticker := time.NewTicker(time.Second * 5)
-	stats := conn.Stat()
-	logrus.WithFields(logrus.Fields{
-		"Max Conn":       stats.MaxConnections,
-		"Current Conn":   stats.CurrentConnections,
-		"Avaliable Conn": stats.AvailableConnections,
-	}).Info()
-	go func() {
-		for range ticker.C {
-			stats := conn.Stat()
-			logrus.WithFields(logrus.Fields{
-				"Max Conn":       stats.MaxConnections,
-				"Current Conn":   stats.CurrentConnections,
-				"Avaliable Conn": stats.AvailableConnections,
-			}).Info()
-		}
-	}()
-}
+
